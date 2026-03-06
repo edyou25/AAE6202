@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Mapping
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -157,6 +158,29 @@ def _build_frame_schedule(
     return frame_ids, interval_ms, writer_fps
 
 
+def _series_with_default(
+    telemetry: Mapping[str, Any] | None,
+    key: str,
+    n: int,
+    default: float = np.nan,
+) -> np.ndarray:
+    out = np.full(n, default, dtype=float)
+    if telemetry is None or key not in telemetry:
+        return out
+
+    arr = np.asarray(telemetry[key], dtype=float).reshape(-1)
+    m = min(n, arr.size)
+    if m > 0:
+        out[:m] = arr[:m]
+    return out
+
+
+def _scalar_with_default(telemetry: Mapping[str, Any] | None, key: str, default: Any) -> Any:
+    if telemetry is None:
+        return default
+    return telemetry.get(key, default)
+
+
 def _save_animation_with_fallback(ani: FuncAnimation, out_path: Path, fps: int, dpi: int) -> Path:
     suffix = out_path.suffix.lower()
     if suffix == ".mp4":
@@ -189,6 +213,7 @@ def _build_animation(
     ref,
     fps: int,
     max_frames: int,
+    telemetry: Mapping[str, Any] | None = None,
 ) -> tuple[plt.Figure, FuncAnimation]:
     if hist.ndim != 2 or hist.shape[1] < 3:
         raise ValueError("hist must have shape (N, >=3) with [x, y, psi, ...]")
@@ -201,7 +226,10 @@ def _build_animation(
         max_frames=max_frames,
     )
 
-    fig, ax = plt.subplots(figsize=(8.5, 8.5))
+    fig = plt.figure(figsize=(14.0, 8.5))
+    gs = fig.add_gridspec(1, 2, width_ratios=[3.9, 1.8], wspace=0.18)
+    ax = fig.add_subplot(gs[0, 0])
+    ax_info = fig.add_subplot(gs[0, 1])
 
     x_ref, y_ref = _reference_circle_points(ref)
     ax.plot(x_ref, y_ref, "k--", linewidth=1.2, alpha=0.7, label="reference")
@@ -238,6 +266,43 @@ def _build_animation(
     )
     title = ax.set_title("B747 point-cloud animation")
 
+    n_hist = hist.shape[0]
+    e_ct_series = _series_with_default(telemetry, "e_ct", n_hist)
+    e_psi_series = _series_with_default(telemetry, "e_psi_deg", n_hist)
+    e_phi_series = _series_with_default(telemetry, "e_phi_deg", n_hist)
+    solve_ms_series = _series_with_default(telemetry, "solve_time_ms", n_hist)
+    lqr_obj_series = _series_with_default(telemetry, "lqr_obj", n_hist)
+    delta_phi_cmd_series = _series_with_default(telemetry, "delta_phi_cmd_deg", n_hist)
+    phi_cmd_series = _series_with_default(telemetry, "phi_cmd_deg", n_hist)
+    thrust_series = _series_with_default(telemetry, "thrust", n_hist)
+
+    dstate_series_raw = np.asarray(_scalar_with_default(telemetry, "dstate", np.full((n_hist, 5), np.nan)))
+    if dstate_series_raw.ndim != 2 or dstate_series_raw.shape[1] != 5:
+        dstate_series = np.full((n_hist, 5), np.nan)
+    else:
+        dstate_series = np.full((n_hist, 5), np.nan)
+        m = min(n_hist, dstate_series_raw.shape[0])
+        dstate_series[:m] = dstate_series_raw[:m]
+
+    rk_method = _scalar_with_default(telemetry, "rk_method", "RK4")
+    rk_dt = float(_scalar_with_default(telemetry, "rk_dt", np.nan))
+    q_e_psi = float(_scalar_with_default(telemetry, "q_e_psi", np.nan))
+    q_e_phi = float(_scalar_with_default(telemetry, "q_e_phi", np.nan))
+    r_u = float(_scalar_with_default(telemetry, "r_u", np.nan))
+
+    ax_info.axis("off")
+    ax_info.set_title("Logs", loc="left", fontsize=11)
+    diag_text = ax_info.text(
+        0.01,
+        0.99,
+        "",
+        va="top",
+        ha="left",
+        fontsize=9,
+        family="monospace",
+        linespacing=1.35,
+    )
+
     def _update(frame_no: int):
         idx = frame_ids[frame_no]
         x, y, psi = hist[idx, 0], hist[idx, 1], hist[idx, 2]
@@ -254,10 +319,55 @@ def _build_animation(
 
         t_now = time[idx] if idx < time.shape[0] else idx
         title.set_text(
-            f"B747 point-cloud animation | t={t_now:6.1f}s | v={v:6.1f}m/s | phi={np.rad2deg(phi):6.2f}deg"
+            f"B747 Control Simulation | t={t_now:6.1f}s | v={v:6.1f}m/s | phi={np.rad2deg(phi):6.2f}deg"
         )
 
-        return traj_line, fuselage_sc, wing_sc, h_tail_sc, v_tail_sc, title
+        e_ct = e_ct_series[idx]
+        e_psi = e_psi_series[idx]
+        e_phi = e_phi_series[idx]
+        solve_ms = solve_ms_series[idx]
+        lqr_obj = lqr_obj_series[idx]
+        delta_phi_cmd = delta_phi_cmd_series[idx]
+        phi_cmd = phi_cmd_series[idx]
+        thrust = thrust_series[idx]
+        x_dot, y_dot, psi_dot, phi_dot, v_dot = dstate_series[idx]
+
+        diag_text.set_text(
+            "\n".join(
+                [
+                    "[Control Errors]",
+                    f"e_ct      : {e_ct:10.3f} m",
+                    f"e_psi     : {e_psi:10.3f} deg",
+                    f"e_phi     : {e_phi:10.3f} deg",
+                    "",
+                    "[Optimization]",
+                    f"solve time: {solve_ms:10.3f} ms",
+                    f"objective : {lqr_obj:10.6f}",
+                    f"u* dphi   : {delta_phi_cmd:10.3f} deg",
+                    f"u* phi_cmd: {phi_cmd:10.3f} deg",
+                    f"u* thrust : {thrust:10.1f} N",
+                    f"weights   : Q=[{q_e_psi:.1f}, {q_e_phi:.1f}], R={r_u:.2f}",
+                    "",
+                    "[ODE / RK]",
+                    f"method    : {rk_method}",
+                    f"dt        : {rk_dt:10.4f} s",
+                    "state     :",
+                    f"  x       : {x:10.1f} m",
+                    f"  y       : {y:10.1f} m",
+                    f"  psi     : {np.rad2deg(psi):10.3f} deg",
+                    f"  phi     : {np.rad2deg(phi):10.3f} deg",
+                    f"  v       : {v:10.3f} m/s",
+                    "state_dot :",
+                    f"  x_dot   : {x_dot:10.3f}",
+                    f"  y_dot   : {y_dot:10.3f}",
+                    f"  psi_dot : {psi_dot:10.6f}",
+                    f"  phi_dot : {phi_dot:10.6f}",
+                    f"  v_dot   : {v_dot:10.6f}",
+                ]
+            )
+        )
+
+        return traj_line, fuselage_sc, wing_sc, h_tail_sc, v_tail_sc, title, diag_text
 
     ani = FuncAnimation(
         fig,
@@ -279,9 +389,17 @@ def save_flight_animation(
     fps: int = 60,
     max_frames: int = 0,
     dpi: int = 120,
+    telemetry: Mapping[str, Any] | None = None,
 ) -> str:
     """Save simulation animation with an aircraft point cloud marker."""
-    fig, ani = _build_animation(time=time, hist=hist, ref=ref, fps=fps, max_frames=max_frames)
+    fig, ani = _build_animation(
+        time=time,
+        hist=hist,
+        ref=ref,
+        fps=fps,
+        max_frames=max_frames,
+        telemetry=telemetry,
+    )
     writer_fps = getattr(ani, "_writer_fps", max(1, int(fps)))
 
     try:
@@ -298,9 +416,17 @@ def show_flight_animation(
     ref,
     fps: int = 60,
     max_frames: int = 0,
+    telemetry: Mapping[str, Any] | None = None,
 ) -> FuncAnimation:
     """Play the simulation animation in an interactive window."""
-    fig, ani = _build_animation(time=time, hist=hist, ref=ref, fps=fps, max_frames=max_frames)
+    fig, ani = _build_animation(
+        time=time,
+        hist=hist,
+        ref=ref,
+        fps=fps,
+        max_frames=max_frames,
+        telemetry=telemetry,
+    )
     # Keep a strong reference for backends that defer rendering until show().
     fig._flight_animation = ani  # type: ignore[attr-defined]
     manager = getattr(fig.canvas, "manager", None)

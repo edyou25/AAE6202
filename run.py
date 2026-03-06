@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from time import perf_counter
 
 import numpy as np
 
@@ -33,7 +34,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from controller import CircleRef, ControlConfig, LQRCircleController
-from dynamics import B747Params, rk4_step
+from dynamics import B747Params, b747_dynamics, rk4_step
 from visual import save_flight_animation, show_flight_animation
 
 
@@ -58,20 +59,71 @@ def simulate():
     hist = np.zeros((n + 1, 5), dtype=float)
     e_ct_hist = np.zeros(n + 1, dtype=float)
     e_psi_hist = np.zeros(n + 1, dtype=float)
+    e_phi_hist = np.zeros(n + 1, dtype=float)
     phi_cmd_hist = np.zeros(n + 1, dtype=float)
+    delta_phi_cmd_hist = np.zeros(n + 1, dtype=float)
+    thrust_hist = np.zeros(n + 1, dtype=float)
+    lqr_obj_hist = np.zeros(n + 1, dtype=float)
+    solve_time_ms_hist = np.zeros(n + 1, dtype=float)
+    dstate_hist = np.zeros((n + 1, 5), dtype=float)
 
     hist[0] = state
 
     for k in range(n):
+        solve_t0 = perf_counter()
         control, info = ctrl.compute_control(state, ref)
+        solve_time_ms = (perf_counter() - solve_t0) * 1000.0
+
+        delta_phi_cmd = control["phi_cmd"] - info["phi_ff"]
+        stage_obj = (
+            cfg.q_e_psi * (info["e_psi"] ** 2)
+            + cfg.q_e_phi * (info["e_phi"] ** 2)
+            + cfg.r_u * (delta_phi_cmd**2)
+        )
+
+        dstate = b747_dynamics(state, control, p)
+
+        e_ct_hist[k] = info["e_ct"]
+        e_psi_hist[k] = np.rad2deg(info["e_psi"])
+        e_phi_hist[k] = np.rad2deg(info["e_phi"])
+        phi_cmd_hist[k] = np.rad2deg(control["phi_cmd"])
+        delta_phi_cmd_hist[k] = np.rad2deg(delta_phi_cmd)
+        thrust_hist[k] = control["thrust"]
+        lqr_obj_hist[k] = stage_obj
+        solve_time_ms_hist[k] = solve_time_ms
+        dstate_hist[k] = dstate
+
         state = rk4_step(state, control, cfg.dt, p)
 
         hist[k + 1] = state
-        e_ct_hist[k + 1] = info["e_ct"]
-        e_psi_hist[k + 1] = np.rad2deg(info["e_psi"])
-        phi_cmd_hist[k + 1] = np.rad2deg(control["phi_cmd"])
+    e_ct_hist[-1] = e_ct_hist[-2]
+    e_psi_hist[-1] = e_psi_hist[-2]
+    e_phi_hist[-1] = e_phi_hist[-2]
+    phi_cmd_hist[-1] = phi_cmd_hist[-2]
+    delta_phi_cmd_hist[-1] = delta_phi_cmd_hist[-2]
+    thrust_hist[-1] = thrust_hist[-2]
+    lqr_obj_hist[-1] = lqr_obj_hist[-2]
+    solve_time_ms_hist[-1] = solve_time_ms_hist[-2]
+    dstate_hist[-1] = dstate_hist[-2]
 
-    return time, hist, e_ct_hist, e_psi_hist, phi_cmd_hist, ref
+    telemetry = {
+        "e_ct": e_ct_hist,
+        "e_psi_deg": e_psi_hist,
+        "e_phi_deg": e_phi_hist,
+        "phi_cmd_deg": phi_cmd_hist,
+        "delta_phi_cmd_deg": delta_phi_cmd_hist,
+        "thrust": thrust_hist,
+        "lqr_obj": lqr_obj_hist,
+        "solve_time_ms": solve_time_ms_hist,
+        "dstate": dstate_hist,
+        "rk_method": "RK4",
+        "rk_dt": cfg.dt,
+        "q_e_psi": cfg.q_e_psi,
+        "q_e_phi": cfg.q_e_phi,
+        "r_u": cfg.r_u,
+    }
+
+    return time, hist, e_ct_hist, e_psi_hist, phi_cmd_hist, ref, telemetry
 
 
 def plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref):
@@ -128,7 +180,7 @@ def plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref):
 def main():
     args = parse_args()
 
-    time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref = simulate()
+    time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref, telemetry = simulate()
     print(f"Final position: x={hist[-1,0]:.1f} m, y={hist[-1,1]:.1f} m")
     print(f"Final speed: {hist[-1,4]:.2f} m/s")
     print(f"Final signed cross-track error: {e_ct[-1]:.2f} m")
@@ -144,6 +196,7 @@ def main():
         ref=ref,
         fps=args.fps,
         max_frames=args.max_frames,
+        telemetry=telemetry,
     )
 
 
