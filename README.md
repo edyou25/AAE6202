@@ -1,5 +1,7 @@
 # AAE6202
 
+![alt text](assets/747.png)
+
 Boeing 747 圆轨迹飞行仿真（LQR 控制 + 4阶 RK 积分）。
 
 ## 文件说明
@@ -13,11 +15,6 @@ Boeing 747 圆轨迹飞行仿真（LQR 控制 + 4阶 RK 积分）。
 python3 run.py
 ```
 
-窗口播放动画：
-```bash
-python3 run.py --show-animation
-```
-
 ## 依赖
 - `conda env create -f env.yaml`
 
@@ -25,6 +22,3 @@ python3 run.py --show-animation
 - [LQR 原理（凸优化、目标函数、约束、凸性）](/home/yyf/AAE6202/docs/lqr.md)
 - [RK 方法原理（含 RK4）](/home/yyf/AAE6202/docs/rk.md)
 
-运行后会在 `data/` 目录下生成：
-- `circle_flight_result.png`（轨迹与误差曲线）
-- `circle_flight_animation.gif`（点云飞机动画，GIF 不可用时回退 MP4）
