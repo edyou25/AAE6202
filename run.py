@@ -35,6 +35,7 @@ import matplotlib.pyplot as plt
 
 from controller import CircleRef, ControlConfig, LQRCircleController
 from dynamics import B747Params, b747_dynamics, rk4_step
+from estimation import EstimationConfig, GaussianMAPEstimator
 from visual import save_flight_animation, show_flight_animation
 
 
@@ -55,6 +56,8 @@ def simulate():
 
     # Start outside boundary with heading slightly off tangent.
     state = np.array([ref.radius + 2000.0, 0.0, np.deg2rad(96.0), 0.0, cfg.v_ref], dtype=float)
+    estimator = GaussianMAPEstimator(x0=state, cfg=EstimationConfig())
+    rng = np.random.default_rng(6202)
 
     hist = np.zeros((n + 1, 5), dtype=float)
     e_ct_hist = np.zeros(n + 1, dtype=float)
@@ -66,8 +69,18 @@ def simulate():
     lqr_obj_hist = np.zeros(n + 1, dtype=float)
     solve_time_ms_hist = np.zeros(n + 1, dtype=float)
     dstate_hist = np.zeros((n + 1, 5), dtype=float)
+    est_prior_err_hist = np.zeros(n + 1, dtype=float)
+    est_post_err_hist = np.zeros(n + 1, dtype=float)
+    est_innovation_hist = np.zeros(n + 1, dtype=float)
+    est_map_obj_hist = np.zeros(n + 1, dtype=float)
+    est_update_ms_hist = np.zeros(n + 1, dtype=float)
+    est_trace_prior_hist = np.zeros(n + 1, dtype=float)
+    est_trace_post_hist = np.zeros(n + 1, dtype=float)
+    est_meas_noise_norm_hist = np.zeros(n + 1, dtype=float)
+    est_state_hat_hist = np.zeros((n + 1, 5), dtype=float)
 
     hist[0] = state
+    est_state_hat_hist[0] = state
 
     for k in range(n):
         solve_t0 = perf_counter()
@@ -82,6 +95,9 @@ def simulate():
         )
 
         dstate = b747_dynamics(state, control, p)
+        meas_noise = rng.normal(loc=0.0, scale=np.asarray(estimator.cfg.measurement_std))
+        measurement = state + meas_noise
+        est_res = estimator.step(control=control, measurement=measurement, dt=cfg.dt, p_dyn=p)
 
         e_ct_hist[k] = info["e_ct"]
         e_psi_hist[k] = np.rad2deg(info["e_psi"])
@@ -92,6 +108,15 @@ def simulate():
         lqr_obj_hist[k] = stage_obj
         solve_time_ms_hist[k] = solve_time_ms
         dstate_hist[k] = dstate
+        est_prior_err_hist[k] = float(np.linalg.norm(est_res["x_prior"] - state))
+        est_post_err_hist[k] = float(np.linalg.norm(est_res["x_post"] - state))
+        est_innovation_hist[k] = float(np.linalg.norm(est_res["innovation"]))
+        est_map_obj_hist[k] = float(est_res["map_objective"])
+        est_update_ms_hist[k] = float(est_res["update_ms"])
+        est_trace_prior_hist[k] = float(np.trace(est_res["p_prior"]))
+        est_trace_post_hist[k] = float(np.trace(est_res["p_post"]))
+        est_meas_noise_norm_hist[k] = float(np.linalg.norm(meas_noise))
+        est_state_hat_hist[k] = est_res["x_post"]
 
         state = rk4_step(state, control, cfg.dt, p)
 
@@ -105,6 +130,15 @@ def simulate():
     lqr_obj_hist[-1] = lqr_obj_hist[-2]
     solve_time_ms_hist[-1] = solve_time_ms_hist[-2]
     dstate_hist[-1] = dstate_hist[-2]
+    est_prior_err_hist[-1] = est_prior_err_hist[-2]
+    est_post_err_hist[-1] = est_post_err_hist[-2]
+    est_innovation_hist[-1] = est_innovation_hist[-2]
+    est_map_obj_hist[-1] = est_map_obj_hist[-2]
+    est_update_ms_hist[-1] = est_update_ms_hist[-2]
+    est_trace_prior_hist[-1] = est_trace_prior_hist[-2]
+    est_trace_post_hist[-1] = est_trace_post_hist[-2]
+    est_meas_noise_norm_hist[-1] = est_meas_noise_norm_hist[-2]
+    est_state_hat_hist[-1] = est_state_hat_hist[-2]
 
     telemetry = {
         "e_ct": e_ct_hist,
@@ -121,6 +155,18 @@ def simulate():
         "q_e_psi": cfg.q_e_psi,
         "q_e_phi": cfg.q_e_phi,
         "r_u": cfg.r_u,
+        "est_prior_err_norm": est_prior_err_hist,
+        "est_post_err_norm": est_post_err_hist,
+        "est_innovation_norm": est_innovation_hist,
+        "est_map_obj": est_map_obj_hist,
+        "est_update_ms": est_update_ms_hist,
+        "est_trace_prior": est_trace_prior_hist,
+        "est_trace_post": est_trace_post_hist,
+        "est_meas_noise_norm": est_meas_noise_norm_hist,
+        "est_measurement_std": np.asarray(estimator.cfg.measurement_std, dtype=float),
+        "est_process_std": np.asarray(estimator.cfg.process_std, dtype=float),
+        "est_state_hat": est_state_hat_hist,
+        "estimation_mode": "Bayes/MAP (Gaussian prior-likelihood-posterior)",
     }
 
     return time, hist, e_ct_hist, e_psi_hist, phi_cmd_hist, ref, telemetry

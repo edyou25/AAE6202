@@ -290,8 +290,45 @@ def _build_animation(
     q_e_phi = float(_scalar_with_default(telemetry, "q_e_phi", np.nan))
     r_u = float(_scalar_with_default(telemetry, "r_u", np.nan))
 
+    est_prior_err_series = _series_with_default(telemetry, "est_prior_err_norm", n_hist)
+    est_post_err_series = _series_with_default(telemetry, "est_post_err_norm", n_hist)
+    est_innovation_series = _series_with_default(telemetry, "est_innovation_norm", n_hist)
+    est_map_obj_series = _series_with_default(telemetry, "est_map_obj", n_hist)
+    est_update_ms_series = _series_with_default(telemetry, "est_update_ms", n_hist)
+    est_trace_prior_series = _series_with_default(telemetry, "est_trace_prior", n_hist)
+    est_trace_post_series = _series_with_default(telemetry, "est_trace_post", n_hist)
+    est_meas_noise_series = _series_with_default(telemetry, "est_meas_noise_norm", n_hist)
+    est_state_hat_raw = np.asarray(_scalar_with_default(telemetry, "est_state_hat", np.full((n_hist, 5), np.nan)))
+    if est_state_hat_raw.ndim != 2 or est_state_hat_raw.shape[1] != 5:
+        est_state_hat = np.full((n_hist, 5), np.nan)
+    else:
+        est_state_hat = np.full((n_hist, 5), np.nan)
+        m_est = min(n_hist, est_state_hat_raw.shape[0])
+        est_state_hat[:m_est] = est_state_hat_raw[:m_est]
+
+    meas_std_arr = np.asarray(_scalar_with_default(telemetry, "est_measurement_std", np.full(5, np.nan)), dtype=float)
+    proc_std_arr = np.asarray(_scalar_with_default(telemetry, "est_process_std", np.full(5, np.nan)), dtype=float)
+    if meas_std_arr.size >= 5:
+        meas_pos_std = float(np.mean(meas_std_arr[:2]))
+        meas_ang_std_deg = float(np.rad2deg(np.mean(meas_std_arr[2:4])))
+        meas_v_std = float(meas_std_arr[4])
+    else:
+        meas_pos_std = np.nan
+        meas_ang_std_deg = np.nan
+        meas_v_std = np.nan
+    if proc_std_arr.size >= 5:
+        proc_pos_std = float(np.mean(proc_std_arr[:2]))
+        proc_ang_std_deg = float(np.rad2deg(np.mean(proc_std_arr[2:4])))
+        proc_v_std = float(proc_std_arr[4])
+    else:
+        proc_pos_std = np.nan
+        proc_ang_std_deg = np.nan
+        proc_v_std = np.nan
+
+    est_mode = str(_scalar_with_default(telemetry, "estimation_mode", "Bayes/MAP"))
+
     ax_info.axis("off")
-    ax_info.set_title("Logs", loc="left", fontsize=11)
+    ax_info.set_title("Part1/Part2/Part3 Logs", loc="left", fontsize=11)
     diag_text = ax_info.text(
         0.01,
         0.99,
@@ -331,16 +368,25 @@ def _build_animation(
         phi_cmd = phi_cmd_series[idx]
         thrust = thrust_series[idx]
         x_dot, y_dot, psi_dot, phi_dot, v_dot = dstate_series[idx]
+        est_prior_err = est_prior_err_series[idx]
+        est_post_err = est_post_err_series[idx]
+        est_innov = est_innovation_series[idx]
+        est_map_obj = est_map_obj_series[idx]
+        est_update_ms = est_update_ms_series[idx]
+        est_trace_prior = est_trace_prior_series[idx]
+        est_trace_post = est_trace_post_series[idx]
+        est_meas_noise = est_meas_noise_series[idx]
+        xh, yh, psih, phih, vh = est_state_hat[idx]
 
         diag_text.set_text(
             "\n".join(
                 [
-                    "[Control Errors]",
+                    "[Part1 - LQR / Control Errors]",
                     f"e_ct      : {e_ct:10.3f} m",
                     f"e_psi     : {e_psi:10.3f} deg",
                     f"e_phi     : {e_phi:10.3f} deg",
                     "",
-                    "[Optimization]",
+                    "[Part1 - Optimization]",
                     f"solve time: {solve_ms:10.3f} ms",
                     f"objective : {lqr_obj:10.6f}",
                     f"u* dphi   : {delta_phi_cmd:10.3f} deg",
@@ -348,7 +394,7 @@ def _build_animation(
                     f"u* thrust : {thrust:10.1f} N",
                     f"weights   : Q=[{q_e_psi:.1f}, {q_e_phi:.1f}], R={r_u:.2f}",
                     "",
-                    "[ODE / RK]",
+                    "[Part2 - ODE / RK4]",
                     f"method    : {rk_method}",
                     f"dt        : {rk_dt:10.4f} s",
                     "state     :",
@@ -363,6 +409,26 @@ def _build_animation(
                     f"  psi_dot : {psi_dot:10.6f}",
                     f"  phi_dot : {phi_dot:10.6f}",
                     f"  v_dot   : {v_dot:10.6f}",
+                    "",
+                    "[Part3 - Bayes/MAP Estimation]",
+                    f"mode      : {est_mode}",
+                    "prior=prediction, like=measurement, post=update",
+                    f"innov norm: {est_innov:10.3f}",
+                    f"noise ||v||: {est_meas_noise:10.3f}",
+                    f"sigma_meas: pos={meas_pos_std:.1f}m ang={meas_ang_std_deg:.2f}deg v={meas_v_std:.2f}",
+                    f"sigma_proc: pos={proc_pos_std:.1f}m ang={proc_ang_std_deg:.2f}deg v={proc_v_std:.2f}",
+                    f"prior err : {est_prior_err:10.3f}",
+                    f"post err  : {est_post_err:10.3f}",
+                    f"MAP obj   : {est_map_obj:10.6f}",
+                    f"upd time  : {est_update_ms:10.3f} ms",
+                    f"tr(P-)    : {est_trace_prior:10.3f}",
+                    f"tr(P+)    : {est_trace_post:10.3f}",
+                    "x_hat     :",
+                    f"  x_hat   : {xh:10.1f} m",
+                    f"  y_hat   : {yh:10.1f} m",
+                    f"  psi_hat : {np.rad2deg(psih):10.3f} deg",
+                    f"  phi_hat : {np.rad2deg(phih):10.3f} deg",
+                    f"  v_hat   : {vh:10.3f} m/s",
                 ]
             )
         )
