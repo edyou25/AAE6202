@@ -2,24 +2,49 @@
 
 from __future__ import annotations
 
+import argparse
 import os
+import sys
 
 import numpy as np
 
-os.environ.setdefault("MPLCONFIGDIR", os.path.join(os.getcwd(), ".mplconfig"))
+
+def _build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="B747 circular-flight simulation")
+    parser.add_argument(
+        "--show-animation",
+        action="store_true",
+        default=True,
+        help="Play point-cloud animation in an interactive window.",
+    )
+    parser.add_argument("--fps", type=int, default=30, help="Animation frame rate.")
+    parser.add_argument(
+        "--max-frames",
+        type=int,
+        default=500,
+        help="Maximum frames used for animation playback/export.",
+    )
+    return parser
+
+
 import matplotlib
 
-matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 
 from controller import CircleRef, ControlConfig, LQRCircleController
 from dynamics import B747Params, rk4_step
+from visual import save_flight_animation, show_flight_animation
+
+
+def parse_args() -> argparse.Namespace:
+    return _build_arg_parser().parse_args()
 
 
 def simulate():
     p = B747Params()
     cfg = ControlConfig(v_ref=210.0, dt=0.05)
-    ref = CircleRef(center_x=0.0, center_y=0.0, radius=12_000.0, ccw=True)
+    ref = CircleRef(center_x=0.0, center_y=0.0, radius=12_0000.0, ccw=True)
 
     ctrl = LQRCircleController(cfg, p)
 
@@ -96,17 +121,30 @@ def plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref):
     ax4.legend()
 
     fig.tight_layout()
+    os.makedirs("data", exist_ok=True)
     fig.savefig("data/circle_flight_result.png", dpi=150)
 
 
 def main():
+    args = parse_args()
+
     time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref = simulate()
     print(f"Final position: x={hist[-1,0]:.1f} m, y={hist[-1,1]:.1f} m")
     print(f"Final speed: {hist[-1,4]:.2f} m/s")
     print(f"Final signed cross-track error: {e_ct[-1]:.2f} m")
     print(f"Final |cross-track error|: {abs(e_ct[-1]):.2f} m")
+
     plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref)
     print("Saved figure: data/circle_flight_result.png")
+
+    print("Opening animation window...")
+    anim = show_flight_animation(
+        time=time,
+        hist=hist,
+        ref=ref,
+        fps=args.fps,
+        max_frames=args.max_frames,
+    )
 
 
 if __name__ == "__main__":
