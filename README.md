@@ -1,8 +1,25 @@
-# AAE6202
+# AAE6202 Homework
 
-![alt text](assets/747.png)
+| Boeing747 | Simulation |
+| --- | --- |
+| ![B747](assets/747.png) | ![Animation](assets/anime.gif) |
+
+
 
 Boeing 747 圆轨迹飞行仿真（LQR 控制 + 4阶 RK 积分）。
+
+## 理论文档
+- [Part1：LQR（凸优化背景/二次型）](docs/lqr.md)
+- [Part2：RK4（连续动力学离散推进）](docs/rk.md)
+- [Part3：Bayes/MAP estimation（卡尔曼滤波）](docs/estimation.md)
+
+## 依赖
+- `conda env create -f env.yaml`
+
+## 运行方式
+```bash
+python3 run.py
+```
 
 ## 文件说明
 - `run.py`：程序主入口，运行仿真并绘图。
@@ -10,16 +27,3 @@ Boeing 747 圆轨迹飞行仿真（LQR 控制 + 4阶 RK 积分）。
 - `dynamics.py`：波音 747 二维平面动力学模型 + RK4 积分器。
 - `estimation.py`：Bayes/MAP 状态估计模块（先验预测 + 测量更新）。
 - `visual.py`：飞机点云可视化模块（机身、机翼、尾翼）与动画导出。
-
-## 运行方式
-```bash
-python3 run.py
-```
-
-## 依赖
-- `conda env create -f env.yaml`
-
-## 理论文档
-- [Part1：LQR（凸优化背景/二次型）](/home/yyf/AAE6202/docs/lqr.md)
-- [Part2：RK4（连续动力学离散推进）](/home/yyf/AAE6202/docs/rk.md)
-- [Part3：Bayes/MAP estimation（先验=预测，似然=测量，后验=更新）](/home/yyf/AAE6202/docs/estimation.md)

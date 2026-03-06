@@ -225,6 +225,7 @@ def plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref):
 
 def main():
     args = parse_args()
+    args.max_frames = 600
 
     time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref, telemetry = simulate()
     print(f"Final position: x={hist[-1,0]:.1f} m, y={hist[-1,1]:.1f} m")
@@ -235,15 +236,25 @@ def main():
     # plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref)
     # print("Saved figure: data/circle_flight_result.png")
 
-    print("Opening animation window...")
-    anim = show_flight_animation(
+    print("Saving animation...")
+    # anim = show_flight_animation(
+    #     time=time,
+    #     hist=hist,
+    #     ref=ref,
+    #     fps=args.fps,
+    #     max_frames=args.max_frames,
+    #     telemetry=telemetry,
+    # )
+    saved_anim = save_flight_animation(
         time=time,
         hist=hist,
         ref=ref,
+        out_path="data/circle_flight_animation.gif",
         fps=args.fps,
         max_frames=args.max_frames,
         telemetry=telemetry,
     )
+    print(f"Saved animation: {saved_anim}")
 
 
 if __name__ == "__main__":

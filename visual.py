@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FFMpegWriter, FuncAnimation, PillowWriter
 
-AIRCRAFT_PLOT_SCALE = 100.0
+AIRCRAFT_PLOT_SCALE = 200.0
 
 
 @dataclass(frozen=True)
@@ -248,8 +248,10 @@ def _build_animation(
     y_span = np.max(y_all) - np.min(y_all)
     pad = 0.08 * max(x_span, y_span) + 600.0
 
-    ax.set_xlim(np.min(x_all) - pad, np.max(x_all) + pad)
-    ax.set_ylim(np.min(y_all) - pad, np.max(y_all) + pad)
+    # ax.set_xlim(np.min(x_all) - pad, np.max(x_all) + pad)
+    # ax.set_ylim(np.min(y_all) - pad, np.max(y_all) + pad)
+    ax.set_xlim(- pad, np.max(x_all) + pad)
+    ax.set_ylim(- pad, np.max(y_all) + pad)
     ax.set_aspect("equal", adjustable="box")
     ax.set_xlabel("x (m)")
     ax.set_ylabel("y (m)")
@@ -264,7 +266,7 @@ def _build_animation(
         fontsize=9,
         bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "alpha": 0.85, "edgecolor": "0.6"},
     )
-    title = ax.set_title("B747 point-cloud animation")
+    title = ax.set_title("B747 Control Simulation")
 
     n_hist = hist.shape[0]
     e_ct_series = _series_with_default(telemetry, "e_ct", n_hist)
@@ -328,7 +330,7 @@ def _build_animation(
     est_mode = str(_scalar_with_default(telemetry, "estimation_mode", "Bayes/MAP"))
 
     ax_info.axis("off")
-    ax_info.set_title("Part1/Part2/Part3 Logs", loc="left", fontsize=11)
+    ax_info.set_title("Logs", loc="left", fontsize=11)
     diag_text = ax_info.text(
         0.01,
         0.99,
