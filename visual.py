@@ -104,7 +104,7 @@ def body_to_world(points_body: np.ndarray, x: float, y: float, psi: float) -> np
 
 def _frame_indices(n: int, max_frames: int) -> np.ndarray:
     if max_frames <= 0:
-        raise ValueError("max_frames must be positive")
+        return np.arange(n, dtype=int)
     if n <= max_frames:
         return np.arange(n, dtype=int)
     return np.linspace(0, n - 1, max_frames, dtype=int)
@@ -117,10 +117,44 @@ def _reference_circle_points(ref, n: int = 600) -> tuple[np.ndarray, np.ndarray]
     return x_ref, y_ref
 
 
-def _fps_timing(fps: int) -> tuple[float, int]:
-    """Return animation interval and writer fps from the requested playback fps."""
-    fps_safe = max(1, int(fps))
-    return 1000.0 / fps_safe, fps_safe
+def _build_frame_schedule(
+    time: np.ndarray,
+    n_states: int,
+    fps: int,
+    max_frames: int,
+) -> tuple[np.ndarray, float, int]:
+    """Build frame ids and timing without speeding up simulation time."""
+    fps_req = max(1, int(fps))
+    frame_ids = _frame_indices(n_states, max_frames=max_frames)
+
+    if frame_ids.size < 2:
+        return frame_ids, 1000.0 / fps_req, fps_req
+
+    sim_t0 = float(time[frame_ids[0]])
+    sim_t1 = float(time[frame_ids[-1]])
+    sim_span = max(0.0, sim_t1 - sim_t0)
+
+    if sim_span <= 0.0:
+        return frame_ids, 1000.0 / fps_req, fps_req
+
+    # Keep playback in real simulation time: wall-time span == simulation span.
+    interval_ms = 1000.0 * sim_span / float(frame_ids.size - 1)
+    fps_real_time = float(frame_ids.size - 1) / sim_span
+
+    # Never exceed requested fps; if necessary, downsample further.
+    if fps_real_time > fps_req:
+        n_frames_req = int(np.floor(sim_span * fps_req)) + 1
+        n_frames = max(2, min(n_frames_req, frame_ids.size))
+        frame_ids = np.linspace(frame_ids[0], frame_ids[-1], n_frames, dtype=int)
+        frame_ids = np.unique(frame_ids)
+        if frame_ids.size < 2:
+            frame_ids = np.array([0, n_states - 1], dtype=int) if n_states > 1 else np.array([0], dtype=int)
+        sim_span = max(1e-12, float(time[frame_ids[-1]] - time[frame_ids[0]]))
+        interval_ms = 1000.0 * sim_span / float(frame_ids.size - 1)
+        fps_real_time = float(frame_ids.size - 1) / sim_span
+
+    writer_fps = max(1, int(round(fps_real_time)))
+    return frame_ids, interval_ms, writer_fps
 
 
 def _save_animation_with_fallback(ani: FuncAnimation, out_path: Path, fps: int, dpi: int) -> Path:
@@ -160,8 +194,12 @@ def _build_animation(
         raise ValueError("hist must have shape (N, >=3) with [x, y, psi, ...]")
 
     cloud = build_aircraft_point_cloud(scale=AIRCRAFT_PLOT_SCALE)
-    frame_ids = _frame_indices(hist.shape[0], max_frames=max_frames)
-    interval_ms, _ = _fps_timing(fps=fps)
+    frame_ids, interval_ms, writer_fps = _build_frame_schedule(
+        time=time,
+        n_states=hist.shape[0],
+        fps=fps,
+        max_frames=max_frames,
+    )
 
     fig, ax = plt.subplots(figsize=(8.5, 8.5))
 
@@ -229,6 +267,7 @@ def _build_animation(
         blit=False,
         repeat=False,
     )
+    ani._writer_fps = writer_fps  # type: ignore[attr-defined]
     return fig, ani
 
 
@@ -238,12 +277,12 @@ def save_flight_animation(
     ref,
     out_path: str = "data/circle_flight_animation.gif",
     fps: int = 60,
-    max_frames: int = 500,
+    max_frames: int = 0,
     dpi: int = 120,
 ) -> str:
     """Save simulation animation with an aircraft point cloud marker."""
     fig, ani = _build_animation(time=time, hist=hist, ref=ref, fps=fps, max_frames=max_frames)
-    _, writer_fps = _fps_timing(fps=fps)
+    writer_fps = getattr(ani, "_writer_fps", max(1, int(fps)))
 
     try:
         saved_path = _save_animation_with_fallback(ani, Path(out_path), fps=writer_fps, dpi=dpi)
@@ -258,7 +297,7 @@ def show_flight_animation(
     hist: np.ndarray,
     ref,
     fps: int = 60,
-    max_frames: int = 500,
+    max_frames: int = 0,
 ) -> FuncAnimation:
     """Play the simulation animation in an interactive window."""
     fig, ani = _build_animation(time=time, hist=hist, ref=ref, fps=fps, max_frames=max_frames)

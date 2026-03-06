@@ -21,8 +21,8 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-frames",
         type=int,
-        default=500,
-        help="Maximum frames used for animation playback/export.",
+        default=0,
+        help="Maximum frames used for animation playback/export (0 means use all simulation frames).",
     )
     return parser
 
@@ -134,8 +134,8 @@ def main():
     print(f"Final signed cross-track error: {e_ct[-1]:.2f} m")
     print(f"Final |cross-track error|: {abs(e_ct[-1]):.2f} m")
 
-    plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref)
-    print("Saved figure: data/circle_flight_result.png")
+    # plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref)
+    # print("Saved figure: data/circle_flight_result.png")
 
     print("Opening animation window...")
     anim = show_flight_animation(
