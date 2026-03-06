@@ -96,7 +96,7 @@ def plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref):
     ax4.legend()
 
     fig.tight_layout()
-    fig.savefig("circle_flight_result.png", dpi=150)
+    fig.savefig("data/circle_flight_result.png", dpi=150)
 
 
 def main():
@@ -106,7 +106,7 @@ def main():
     print(f"Final signed cross-track error: {e_ct[-1]:.2f} m")
     print(f"Final |cross-track error|: {abs(e_ct[-1]):.2f} m")
     plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref)
-    print("Saved figure: circle_flight_result.png")
+    print("Saved figure: data/circle_flight_result.png")
 
 
 if __name__ == "__main__":
