@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FFMpegWriter, FuncAnimation, PillowWriter
 
+AIRCRAFT_PLOT_SCALE = 100.0
+
 
 @dataclass(frozen=True)
 class AircraftPointCloud:
@@ -115,6 +117,12 @@ def _reference_circle_points(ref, n: int = 600) -> tuple[np.ndarray, np.ndarray]
     return x_ref, y_ref
 
 
+def _fps_timing(fps: int) -> tuple[float, int]:
+    """Return animation interval and writer fps from the requested playback fps."""
+    fps_safe = max(1, int(fps))
+    return 1000.0 / fps_safe, fps_safe
+
+
 def _save_animation_with_fallback(ani: FuncAnimation, out_path: Path, fps: int, dpi: int) -> Path:
     suffix = out_path.suffix.lower()
     if suffix == ".mp4":
@@ -151,8 +159,9 @@ def _build_animation(
     if hist.ndim != 2 or hist.shape[1] < 3:
         raise ValueError("hist must have shape (N, >=3) with [x, y, psi, ...]")
 
-    cloud = build_aircraft_point_cloud(scale=1000.0)
+    cloud = build_aircraft_point_cloud(scale=AIRCRAFT_PLOT_SCALE)
     frame_ids = _frame_indices(hist.shape[0], max_frames=max_frames)
+    interval_ms, _ = _fps_timing(fps=fps)
 
     fig, ax = plt.subplots(figsize=(8.5, 8.5))
 
@@ -180,6 +189,15 @@ def _build_animation(
     ax.set_ylabel("y (m)")
     ax.grid(True, alpha=0.25)
     ax.legend(loc="upper right")
+    ax.text(
+        0.02,
+        0.98,
+        f"Aircraft plot scale: x{AIRCRAFT_PLOT_SCALE:g}",
+        transform=ax.transAxes,
+        va="top",
+        fontsize=9,
+        bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "alpha": 0.85, "edgecolor": "0.6"},
+    )
     title = ax.set_title("B747 point-cloud animation")
 
     def _update(frame_no: int):
@@ -207,7 +225,7 @@ def _build_animation(
         fig,
         _update,
         frames=len(frame_ids),
-        interval=1000.0 / max(fps, 1),
+        interval=interval_ms,
         blit=False,
         repeat=False,
     )
@@ -219,15 +237,16 @@ def save_flight_animation(
     hist: np.ndarray,
     ref,
     out_path: str = "data/circle_flight_animation.gif",
-    fps: int = 30,
+    fps: int = 60,
     max_frames: int = 500,
     dpi: int = 120,
 ) -> str:
     """Save simulation animation with an aircraft point cloud marker."""
     fig, ani = _build_animation(time=time, hist=hist, ref=ref, fps=fps, max_frames=max_frames)
+    _, writer_fps = _fps_timing(fps=fps)
 
     try:
-        saved_path = _save_animation_with_fallback(ani, Path(out_path), fps=fps, dpi=dpi)
+        saved_path = _save_animation_with_fallback(ani, Path(out_path), fps=writer_fps, dpi=dpi)
     finally:
         plt.close(fig)
 
@@ -238,7 +257,7 @@ def show_flight_animation(
     time: np.ndarray,
     hist: np.ndarray,
     ref,
-    fps: int = 30,
+    fps: int = 60,
     max_frames: int = 500,
 ) -> FuncAnimation:
     """Play the simulation animation in an interactive window."""
