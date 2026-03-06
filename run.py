@@ -17,7 +17,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default=True,
         help="Play point-cloud animation in an interactive window.",
     )
-    parser.add_argument("--fps", type=int, default=30, help="Animation frame rate.")
+    parser.add_argument("--fps", type=int, default=60, help="Animation frame rate.")
     parser.add_argument(
         "--max-frames",
         type=int,
