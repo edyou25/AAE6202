@@ -237,24 +237,24 @@ def main():
     # print("Saved figure: data/circle_flight_result.png")
 
     print("Saving animation...")
-    # anim = show_flight_animation(
-    #     time=time,
-    #     hist=hist,
-    #     ref=ref,
-    #     fps=args.fps,
-    #     max_frames=args.max_frames,
-    #     telemetry=telemetry,
-    # )
-    saved_anim = save_flight_animation(
+    anim = show_flight_animation(
         time=time,
         hist=hist,
         ref=ref,
-        out_path="data/circle_flight_animation.gif",
         fps=args.fps,
         max_frames=args.max_frames,
         telemetry=telemetry,
     )
-    print(f"Saved animation: {saved_anim}")
+    # saved_anim = save_flight_animation(
+    #     time=time,
+    #     hist=hist,
+    #     ref=ref,
+    #     out_path="data/circle_flight_animation.gif",
+    #     fps=args.fps,
+    #     max_frames=args.max_frames,
+    #     telemetry=telemetry,
+    # )
+    # print(f"Saved animation: {saved_anim}")
 
 
 if __name__ == "__main__":
