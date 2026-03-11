@@ -53,6 +53,7 @@
 \RequirePackage{appendix}
 \RequirePackage{emptypage}
 \RequirePackage{etoolbox}
+\RequirePackage{iftex}
 
 \usepackage{booktabs}
 \usepackage{ marvosym }
@@ -78,8 +79,8 @@
 
 %Word Count
 \newcommand{\quickwordcount}[1]{%
-  \immediate\write18{texcount -1 -sum=1,0,0,0,0,0,0 -merge #1.tex > #1-words}%
-  \input{#1-words}%
+  \immediate\write18{texcount -1 -sum=1,0,0,0,0,0,0 -merge #1.tex > #1-words.tex}%
+  \IfFileExists{#1-words.tex}{\input{#1-words.tex}}{0 }%
 }
 %\quickwordcount{main} - name of main.tex document (extension not required)
 %counts (text words, header words, caption words, #headers, #floats, #inlined formulae, #displayed formulae) 
@@ -102,26 +103,22 @@
 %\begin{centering}
 %\end{centering}%
 
-\begin{minipage}[l]{0.8\textwidth} %\vskip 0.5em
+\begin{minipage}[l]{0.63\textwidth} %\vskip 0.5em
 \textbf{\Large \myTitle}\\
 \vspace{-0.5em}
 \end{minipage}\hspace*{0.5cm}
-\begin{minipage}[r]{0.155\textwidth}\vskip 0.5em
-\hfill\includegraphics[width=\linewidth]{UoB.png}\\
+\begin{minipage}[r]{0.31\textwidth}\vskip 0.5em
+\hfill\includegraphics[width=\linewidth]{assets/polyu.pdf}\\
 \end{minipage}
 %
 }
 
 \author{
-\vspace{-2em}
-
-
-
-\textbf{\MyAuthor$^{1}$
-    }\\
-    \small{$^{1}$\MyDepartment}
-    %\small{$^{2}$Supervisor,}
-    %\small{$^{3}$Co-Supervisor} Can add more names...
+\vspace{-2em}%
+\textbf{\MyAuthor$^{1}$}\\
+\small{$^{1}$\MyDepartment}
+%\small{$^{2}$Supervisor,}
+%\small{$^{3}$Co-Supervisor} Can add more names...
 }
 
 
@@ -310,10 +307,12 @@
 %Use code inline
 \RequirePackage{listings}
 
-\RequirePackage[utf8]{inputenc}
-\DeclareUnicodeCharacter{394}{$\Delta$}
-\DeclareUnicodeCharacter{3008}{$\langle$}
-\DeclareUnicodeCharacter{3009}{$\rangle$}
+\ifPDFTeX
+  \RequirePackage[utf8]{inputenc}
+  \DeclareUnicodeCharacter{394}{$\Delta$}
+  \DeclareUnicodeCharacter{3008}{$\langle$}
+  \DeclareUnicodeCharacter{3009}{$\rangle$}
+\fi
 
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
