@@ -7,7 +7,9 @@
 
 %%Preliminary definitions, needed by the options
 \newcommand{\headlinecolor}{\normalcolor}
-\renewcommand{\familydefault}{\sfdefault}
+\RequirePackage{newtxtext}
+\RequirePackage{newtxmath}
+\renewcommand{\familydefault}{\rmdefault}
 
 \RequirePackage[table,xcdraw]{xcolor}
 \definecolor{slcolor}{HTML}{882B21}
@@ -79,7 +81,7 @@
 
 %Word Count
 \newcommand{\quickwordcount}[1]{%
-  \immediate\write18{texcount -1 -sum=1,0,0,0,0,0,0 -merge #1.tex > #1-words.tex}%
+  \immediate\write18{python wordcount.py "#1.tex" "#1-words.tex"}%
   \IfFileExists{#1-words.tex}{\input{#1-words.tex}}{0 }%
 }
 %\quickwordcount{main} - name of main.tex document (extension not required)
@@ -99,24 +101,22 @@
 
 %Main Title
 \title{%
-\vspace{-3.5em} %Move the image up the page
-%\begin{centering}
-%\end{centering}%
-
-\begin{minipage}[l]{0.63\textwidth} %\vskip 0.5em
-\textbf{\Large \myTitle}\\
-\vspace{-0.5em}
-\end{minipage}\hspace*{0.5cm}
-\begin{minipage}[r]{0.31\textwidth}\vskip 0.5em
-\hfill\includegraphics[width=\linewidth]{assets/polyu.pdf}\\
+\vspace{-2.2em} %Move the image up the page
+\begin{center}
+\includegraphics[width=0.42\textwidth]{assets/polyu.pdf}\par
+\vspace{1.0em}
+\begin{minipage}{0.92\textwidth}
+\centering
+\textbf{\fontsize{20}{26}\selectfont \myTitle}\par
 \end{minipage}
-%
+\end{center}
 }
 
 \author{
-\vspace{-2em}%
-\textbf{\MyAuthor$^{1}$}\\
-\small{$^{1}$\MyDepartment}
+\vspace{-0.8em}%
+\textbf{\large Yufa You$^{1}$, Ruige Yang$^{1}$}\\
+\vspace{0.2em}\\
+\small{$^{1}$\MyDepartment}\\
 %\small{$^{2}$Supervisor,}
 %\small{$^{3}$Co-Supervisor} Can add more names...
 }
@@ -124,12 +124,11 @@
 
 \RequirePackage{titling}
 \pretitle{% add some rules
-  \vskip 1.5em
-    \huge\bfseries
-    \begin{flushleft}
+  \vskip 0.8em
+    \begin{center}
 }%, make the fonts bigger, make the title (only) bold
 \posttitle{%
-  \end{flushleft}%
+  \end{center}%
   %\noindent\vrule height 2.5pt width \textwidth
   %\vskip .75em plus .25em minus .25em%a increase the vertical spacing a bit, make this particular glue stretchier
 }
@@ -138,32 +137,37 @@
 \newcommand{\myTitle}{Title}
 \newcommand{\MyAuthor}{John J. Smith}
 \newcommand{\MyDepartment}{Department}
+\newcommand{\MyCourse}{Course Name}
 \newcommand{\ID}{1234567}
 
 \preauthor{%
-    \vspace{0em}
-    %\large
-    \begin{flushleft}
-    \vspace{0.0em}\Large %\bfseries %edit bold
+    \vspace{0.6em}
+    \begin{center}
+    \vspace{0.0em}
 }
 
 
 
 \postauthor{%
-    \end{flushleft}%
+    \end{center}%
     \vskip 0em
-    \vspace{0em}
-    \noindent\textnormal{\quickwordcount{_main}Words} 
-    \hfill \textls[20]{Student ID:\ID}\\
-    \textls[45]{\textbf{Keywords:}} {\Keywords}
-    \vspace{-0.8em} %change distance from
+    \vspace{0.8em}
+    \noindent
+    \begin{minipage}{\textwidth}
+    \small
+    \begin{tabular*}{\textwidth}{@{}l@{\extracolsep{\fill}}r@{}}
+    \textnormal{\quickwordcount{\jobname} Words} & \textls[20]{Student ID:\ID}\\
+    \multicolumn{2}{@{}c@{}}{\textls[35]{\textbf{Keywords:}} \Keywords}
+    \end{tabular*}
+    \end{minipage}
+    \vspace{-0.3em}
 }
 
 %Date Settings
 \predate{
-\hfill\begin{minipage}[t]{0.3\textwidth}\begin{flushright}\textls[10]{
+\begin{center}\textls[10]{
 }
-\postdate{\end{flushright}\end{minipage}}}
+\postdate{\end{center}\vspace{-0.6em}}}
 
 %Custom Abstract
 \RequirePackage{expl3,xparse,xcoffins}
@@ -181,19 +185,13 @@
   \keys_set:nn { my / abstract } { #1 }
   \SetVerticalCoffin \l_my_abstract_coffin {\l_my_width_dim} {#2}
   \renewcommand\maketitlehookd{%
-  \noindent\rule{\textwidth}{1pt}\\
-  
-  %\section*{Abstract}
-  %\text{Abstract}\\
-  
-    \mbox{}\medskip %\par
+  \noindent\rule{\textwidth}{1pt}
+    \par\vspace{0.7em}
     \centering
-    \TypesetCoffin \l_my_abstract_coffin\\
-    \vspace{-2em}
-    
+    \TypesetCoffin \l_my_abstract_coffin
+    \par\vspace{0.8em}
     \noindent\rule{\textwidth}{1pt}
-    
-    \vspace{-1em} %move intro closer to abstract
+    \par\vspace{0.5em}
   }
 
 }
@@ -214,7 +212,7 @@
 
 %Margins and Columns
 \RequirePackage[includeheadfoot,top=0.5in, bottom=0.5in, 
-    left=1in, right=1in, headheight=15pt]{geometry} %chnaged to 15 for size 12pt font
+    left=1in, right=1in, headheight=26pt]{geometry} % room for two-line header
 
 
 
@@ -281,10 +279,14 @@
 
 %Fancy Headings
 \pagestyle{fancy}
-\fancyhead[RE,LO]{\slshape{\MyAuthor}}
-% \fancyhead[C]{\leftmark}
+\fancyhead{}
 \fancyfoot[C]{}
-\fancyhead[RO,LE]{Page \thepage \hspace{1pt} of \hypersetup{linkcolor=black}{\pageref*{LastPage}}}
+\fancyhead[C]{%
+  \begin{tabular*}{\headwidth}{@{}l@{\extracolsep{\fill}}r@{}}
+  \multicolumn{2}{@{}c@{}}{\small\MyCourse}\\[-0.05em]
+  \footnotesize Page \thepage \hspace{1pt} of \hypersetup{linkcolor=black}{\pageref*{LastPage}} & \footnotesize\slshape\MyAuthor
+  \end{tabular*}%
+}
 \renewcommand{\headrulewidth}{1pt} %0.5
 \renewcommand{\footrulewidth}{0pt}
 

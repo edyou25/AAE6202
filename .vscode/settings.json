@@ -5,6 +5,7 @@
       "name": "pdflatex",
       "command": "pdflatex",
       "args": [
+        "-shell-escape",
         "-synctex=1",
         "-interaction=nonstopmode",
         "-file-line-error",
@@ -32,6 +33,7 @@
       ]
     }
   ],
+  "latex-workshop.latex.recipe.default": "first",
   "latex-workshop.latex.autoBuild.run": "onSave",
   "latex-workshop.view.pdf.viewer": "tab"
 }

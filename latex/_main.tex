@@ -1,80 +1,359 @@
 \documentclass{Academic}
 
 \begin{document}
-%Easy customisation of title page
 %TC:ignore
-\myabstract{\include{abstract}}
-\renewcommand{\myTitle}{Title of Paper Here}
-\renewcommand{\MyAuthor}{Your Name Here}
-\renewcommand{\MyDepartment}{Department Here}
-\renewcommand{\ID}{1234567}
-\renewcommand{\Keywords}{Keyword 1, Keyword 2, Keyword 3}
+\myabstract{This project develops an integrated simulation framework for Boeing 747 circular-flight tracking in a 2D plane. The framework combines: (i) a linear quadratic regulator (LQR) for heading/bank inner-loop stabilization, (ii) a fourth-order Runge-Kutta (RK4) integrator for nonlinear aircraft dynamics propagation, and (iii) a Gaussian Bayes/MAP estimator for state estimation diagnostics under noisy measurements. Numerical experiments based on the project code show accurate path convergence and stable speed regulation, with final cross-track error close to zero and bounded bank angle throughout the simulation horizon. The report presents problem formulation, methodology, numerical results, and limitations.}
+\renewcommand{\myTitle}{Boeing 747 Trajectory Tracking via Optimization, ODEs Solving, and State Estimation}
+\renewcommand{\MyAuthor}{Yufa You, Ruige Yang}
+\renewcommand{\MyDepartment}{Department of Aeronautical and Aviation Engineering}
+\renewcommand{\MyCourse}{AAE6202 Mathematics and Computational Methods for Aviation Engineering Applications }
+\renewcommand{\ID}{25144639R, 25145125R}
+\renewcommand{\Keywords}{LQR, RK4, Bayesian estimation, MAP, Boeing 747, trajectory tracking}
 \maketitle
-%\vspace{-1.9em}\noindent\rule{\textwidth}{1pt} %add this line if not using abstract
 \onehalfspacing
 %TC:endignore
 
 \section{Introduction}
 
-The hypothesis/question and its context, scope and significance are introduced and explained in a very clear and well-structured way\supercite{einstein}. 
-There is an exceptionally well-structured critical review of key literature of direct relevance to the question/hypothesis. Uncertainties and limitations in previous work are carefully discussed such that the gap in knowledge that will be addressed by the project is precisely defined. 
-Key concepts are clearly introduced with careful referencing. 
-The project aims and objectives are precisely defined so that the significance of the work is clearly evident.
+This project studies circular trajectory tracking for a Boeing 747 model in planar flight. The goal is to build a compact workflow that combines control, nonlinear simulation, and state estimation inside one executable framework. The implemented architecture has three core components: an LQR controller for heading and bank regulation, RK4 numerical integration for nonlinear propagation, and a Gaussian Bayes/MAP estimator for estimation diagnostics.
 
-\section{Methods}
+LQR is a standard optimal control method for linear systems with quadratic costs and is widely used in aerospace inner-loop design because of its predictable tuning behavior and strong stability properties \supercite{anderson1990,lewis2012,astrom2008}. For discrete-time dynamics
+\[
+x_{k+1}=A_d x_k + B_d u_k,
+\]
+the infinite-horizon LQR minimizes
+\[
+J=\sum_{k=0}^{\infty}\left(x_k^\top Q x_k + u_k^\top R u_k\right),
+\]
+with \(Q \succeq 0\) and \(R \succ 0\), leading to linear feedback \(u_k=-Kx_k\). In this project, LQR is used to stabilize heading and bank-angle errors around a circular-tracking reference.
 
-The methods used are described clearly and precisely in sufficient detail that an experienced researcher could repeat the work and obtain precisely the same findings. There is no irrelevant background information that could be referenced.
-For experimental projects, all materials, processing conditions, sample preparation methods and measurement/characterisation procedures are described precisely with full traceability and referencing of any standard methods.
- For modelling projects, there is precise description of computational methods, procedures for calculating data/predictions including set-up parameters. A careful and precise distinction is made between existing modelling tools/commercial software (appropriately referenced), and new methods created for this project. 
+Aircraft motion remains nonlinear, so numerical integration is required. RK4 provides a practical balance between computational cost and accuracy and is commonly used for control-oriented flight simulation \supercite{hairer1993,butcher2016}. Compared with forward Euler, RK4 reduces truncation error significantly while remaining straightforward to implement.
 
+The third component is Gaussian Bayesian estimation. Under Gaussian assumptions, a Bayes update is equivalent to a weighted MAP problem, linking estimation with uncertainty interpretation \supercite{kalman1960,simon2006,welch2006}. In the current code, the estimator is used for diagnostics rather than closed-loop feedback, but it still provides insight into innovation magnitude, covariance contraction, and posterior consistency.
 
-\section{Results}
+The main contribution of this project is the integration of these three ideas into one consistent aerospace simulation workflow. The framework demonstrates how trajectory guidance, optimal regulation, nonlinear propagation, and stochastic state estimation can be combined in a concise course project.
 
-Graphs are presented with clear and appropriate axes, legends, labels and lines such that key evidence is precise and very convincing.  Bar charts are clear, precise and easy to understand.
-Error bars are used consistently and appropriately with precise justification of how they were calculated.
-Micrographs are of excellent quality with appropriate contrast and magnification, and clear scale bars.  Multiple magnifications and arrows highlighting key features are used to excellent effect.
-Figure and table captions indicate all of the key conditions so that the methods used to obtain the data can be precisely traced to the Methods section, such that the data could be replicated with ease.
-Each figure and table is precisely described to highlight the key features that provide evidence for the conclusions.
-For modelling projects, clear and precise evidence is provided to show that numerical results are insensitive to input parameters through convergence tests.
+\section{Problem Statement}
 
+\subsection{Objective}
+
+The objective is to design and evaluate a controller-estimator simulation system that drives a Boeing 747 model to track a circular reference trajectory in planar flight while maintaining a target speed.
+
+\subsection{State, Input, and Reference}
+
+The continuous state is
+\[
+\mathbf{x}=[x,\,y,\,\psi,\,\phi,\,v]^\top,
+\]
+where \(x\) and \(y\) are inertial coordinates, \(\psi\) is heading, \(\phi\) is bank angle, and \(v\) is airspeed.
+
+The control input is
+\[
+\mathbf{u}=[\phi_{\mathrm{cmd}},\,T]^\top,
+\]
+where \(\phi_{\mathrm{cmd}}\) is the commanded bank angle and \(T\) is thrust.
+
+The reference trajectory is a counterclockwise circle centered at \((0,0)\) with radius
+\[
+R=120{,}000\,\mathrm{m}.
+\]
+
+\subsection{Performance Requirements}
+
+The tracking system should satisfy the following requirements:
+\begin{enumerate}
+\item Reduce the signed cross-track error \(e_{ct}=R-r\) toward zero.
+\item Keep heading and bank-angle behavior smooth and stable.
+\item Maintain airspeed near \(v_{\mathrm{ref}}=210\,\mathrm{m/s}\).
+\item Respect actuator and physics limits on bank angle and thrust.
+\end{enumerate}
+
+\subsection{Constraints and Assumptions}
+
+The problem is simplified by the following assumptions:
+\begin{enumerate}
+\item Flight is modeled in a 2D plane.
+\item Aerodynamic drag is represented by a quasi-steady model.
+\item Control is updated discretely with \(\Delta t=0.05\,\mathrm{s}\), while the state dynamics are propagated continuously through numerical integration.
+\item Measurement noise is Gaussian, and the estimator is used only for diagnostics in the current version.
+\end{enumerate}
+
+\section{Methodology}
+
+\subsection{Nonlinear B747 Planar Dynamics}
+
+From \texttt{dynamics.py}, the planar model is
+\[
+\dot x = v\cos\psi,\qquad
+\dot y = v\sin\psi,
+\]
+\[
+\dot\psi = \frac{g\tan\phi}{v},\qquad
+\dot\phi = \frac{\phi_{\mathrm{cmd}}-\phi}{\tau_\phi},\qquad
+\dot v = \frac{T-D}{m}.
+\]
+
+The aerodynamic drag model is
+\[
+D=\frac12 \rho v^2 S C_D,\qquad
+C_D=C_{D0}+k C_L^2,\qquad
+C_L=\frac{2mg}{\rho v^2 S \cos\phi}.
+\]
+
+Key parameters from \texttt{B747Params} are:
+\begin{enumerate}
+\item \(m=333{,}400\,\mathrm{kg}\), \(S=541.2\,\mathrm{m}^2\)
+\item \(C_{D0}=0.02\), \(k=0.045\)
+\item \(\tau_\phi=2.0\,\mathrm{s}\)
+\item \(|\phi|\le35^\circ\), \(T\in[0,\,1.1\times10^6]\,\mathrm{N}\)
+\item \(v\in[120,\,320]\,\mathrm{m/s}\) with safety clipping
+\end{enumerate}
+
+\subsection{RK4 Discretization}
+
+For each simulation step, with constant input over \([t_k,t_{k+1}]\), RK4 evaluates
+\[
+k_1=f(x_k,u_k),\qquad
+k_2=f\left(x_k+\frac{\Delta t}{2}k_1,u_k\right),
+\]
+\[
+k_3=f\left(x_k+\frac{\Delta t}{2}k_2,u_k\right),\qquad
+k_4=f\left(x_k+\Delta t\,k_3,u_k\right),
+\]
+and updates the state by
+\[
+x_{k+1}=x_k+\frac{\Delta t}{6}(k_1+2k_2+2k_3+k_4).
+\]
+
+\subsection{Circular Tracking Controller}
+
+From \texttt{controller.py}, the controller has three layers.
+
+First, an outer-loop geometry-based guidance law computes current radius, circle tangent heading, and signed cross-track error. A bounded heading correction is added:
+\[
+\psi_{\mathrm{des}}=\psi_{\mathrm{tangent}}+\operatorname{clip}\left(\arctan\left(k_{ct}(-e_{ct})\right),\pm25^\circ\right).
+\]
+
+Second, a feedforward bank command for circular motion is generated from
+\[
+\phi_{ff}=\arctan\left(\frac{v_{\mathrm{ref}}^2}{gR}\right),
+\]
+with the correct sign for the direction of turn and with saturation at the bank-angle limit.
+
+Third, an inner-loop LQR regulates heading and bank-angle errors,
+\[
+e_\psi=\psi-\psi_{\mathrm{des}},\qquad e_\phi=\phi-\phi_{ff}.
+\]
+Using the linearized error dynamics
+\[
+\dot e_\psi=\frac{g}{v_{\mathrm{ref}}}e_\phi,\qquad
+\dot e_\phi=-\frac{1}{\tau_\phi}e_\phi+\frac{1}{\tau_\phi}u,
+\]
+where \(u=\Delta\phi_{\mathrm{cmd}}\), the code forms a discrete approximation
+\[
+A_d\approx I+\Delta tA,\qquad B_d\approx \Delta tB,
+\]
+solves the discrete Riccati equation, and applies
+\[
+\Delta\phi_{\mathrm{cmd}}=-K[e_\psi,\,e_\phi]^\top,\qquad
+\phi_{\mathrm{cmd}}=\phi_{ff}+\Delta\phi_{\mathrm{cmd}}.
+\]
+
+The speed loop uses
+\[
+T = D_{\mathrm{guess}} + k_v(v_{\mathrm{ref}}-v),
+\]
+followed by clipping to thrust bounds.
+
+Default LQR weighting in \texttt{ControlConfig} is
+\[
+Q=\operatorname{diag}(30,\,10),\qquad R=[1].
+\]
+
+\subsection{Gaussian Bayes/MAP Estimator}
+
+From \texttt{estimation.py}, the estimator performs prediction, update, and MAP diagnostics.
+
+Prediction:
+\[
+x_k^- = f_{RK4}(x_{k-1}^+,u_{k-1}),\qquad
+P_k^- = P_{k-1}^+ + Q.
+\]
+
+Update:
+\[
+K_k=P_k^-(P_k^-+R)^{-1},
+\]
+\[
+x_k^+=x_k^-+K_k(z_k-x_k^-),\qquad
+P_k^+=(I-K_k)P_k^-.
+\]
+
+The MAP objective evaluated at the posterior state is
+\[
+\mathcal{L}_{MAP}
+=\frac12(x_k^+-x_k^-)^\top(P_k^-)^{-1}(x_k^+-x_k^-)
++\frac12(z_k-x_k^+)^\top R^{-1}(z_k-x_k^+).
+\]
+
+The noise settings are:
+\begin{enumerate}
+\item Process standard deviation: \((2,\,2,\,0.2^\circ,\,0.2^\circ,\,0.5)\)
+\item Measurement standard deviation: \((40,\,40,\,1^\circ,\,1^\circ,\,2)\)
+\item Initial standard deviation: \((50,\,50,\,2^\circ,\,2^\circ,\,3)\)
+\end{enumerate}
+
+\subsection{Simulation Workflow}
+
+At each simulation step in \texttt{run.py}, the following sequence is executed:
+\begin{enumerate}
+\item Compute control action and control diagnostics.
+\item Generate a noisy measurement.
+\item Run the estimator update.
+\item Propagate the true state with RK4.
+\item Log telemetry for analysis and visualization.
+\end{enumerate}
+
+\section{Results and Analysis}
+
+\subsection{Experiment Setup}
+
+The default experiment defined in \texttt{run.py} uses:
+\begin{enumerate}
+\item Time horizon \(t_{end}=800\,\mathrm{s}\), time step \(\Delta t=0.05\,\mathrm{s}\), and 16{,}000 simulation steps.
+\item Initial state
+\[
+[x_0,y_0,\psi_0,\phi_0,v_0]=[R+2000,\,0,\,96^\circ,\,0^\circ,\,210].
+\]
+This places the aircraft outside the target circle with a heading offset.
+\item Random seed 6202 for measurement noise.
+\end{enumerate}
+
+Generated artifacts include \texttt{data/circle\_flight\_result.png} and \texttt{data/circle\_flight\_animation.gif}.
+
+\subsection{Tracking and Regulation Performance}
+
+Table \ref{tab:tracking-metrics} summarizes the main performance metrics.
+
+\begin{table}[!htb]
+\centering
+\caption{Tracking and regulation performance metrics}
+\label{tab:tracking-metrics}
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+Final signed cross-track error \(e_{ct}\) & \(0.218\,\mathrm{m}\) \\
+Final \(|e_{ct}|\) & \(0.218\,\mathrm{m}\) \\
+Overall RMSE of \(e_{ct}\) (0--800 s) & \(269.24\,\mathrm{m}\) \\
+MAE of \(e_{ct}\) & \(60.64\,\mathrm{m}\) \\
+RMSE of \(e_{ct}\) (100--800 s) & \(5.56\,\mathrm{m}\) \\
+Settling time to \(|e_{ct}|<500\,\mathrm{m}\) & \(27.8\,\mathrm{s}\) \\
+Settling time to \(|e_{ct}|<100\,\mathrm{m}\) & \(78.35\,\mathrm{s}\) \\
+Heading error RMSE & \(2.31^\circ\) \\
+Max \(|\phi|\) & \(27.67^\circ\) \\
+Max \(|\phi_{\mathrm{cmd}}|\) & \(35.0^\circ\) \\
+Command saturation ratio & \(0.356\%\) \\
+Mean speed & \(209.724\,\mathrm{m/s}\) \\
+Speed RMSE to \(v_{\mathrm{ref}}=210\) & \(0.276\,\mathrm{m/s}\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These results show that the large total RMSE is dominated by the intentional initial offset. After the transient phase, the aircraft converges closely to the desired circle and the residual radial error becomes very small. Bank-angle behavior remains within physical limits, and the command saturates only rarely, which indicates reasonable controller tuning. The speed regulation loop also performs well, with very small deviation from the target airspeed.
+
+\subsection{Computational Efficiency}
+
+Table \ref{tab:timing-metrics} reports controller and estimator timing.
+
+\begin{table}[!htb]
+\centering
+\caption{Computation time metrics}
+\label{tab:timing-metrics}
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+Mean controller computation time & \(0.0165\,\mathrm{ms}\) \\
+95th percentile controller time & \(0.0176\,\mathrm{ms}\) \\
+Mean estimator update time & \(0.0344\,\mathrm{ms}\) \\
+95th percentile estimator time & \(0.0365\,\mathrm{ms}\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both computations are negligible relative to the 50 ms control interval, so the framework is easily fast enough for the intended simulation setting.
+
+\subsection{Estimation Diagnostics}
+
+Table \ref{tab:estimation-metrics} summarizes the estimation statistics.
+
+\begin{table}[!htb]
+\centering
+\caption{Estimator diagnostic metrics}
+\label{tab:estimation-metrics}
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+Mean prior error norm \(\lVert x^- - x\rVert\) & \(8.380\) \\
+Mean posterior error norm \(\lVert x^+ - x\rVert\) & \(8.379\) \\
+Fraction of steps where posterior improves error & \(50.62\%\) \\
+Mean innovation norm \(\lVert z-x^-\rVert\) & \(50.67\) \\
+Mean trace reduction \(\mathrm{tr}(P^-)\rightarrow\mathrm{tr}(P^+)\) & \(5.15\%\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The covariance is reduced consistently after each update, confirming that the estimator contracts uncertainty. However, the posterior point estimate improves only modestly over the prior in this setup, suggesting that process and measurement confidence are of similar scale. Since the controller still uses the true state, estimator quality does not directly affect trajectory tracking in the current version.
+
+\subsection{Visual Evidence}
+
+The generated figures and animation show that the aircraft starts outside the reference circle and converges smoothly to near-perfect circular motion. The heading and bank-angle transients decay without oscillatory instability, while telemetry remains bounded over the simulation horizon.
 
 \section{Discussion}
 
-\begin{figure}[!htb]%recommended float settings
-    \centering
-    \includegraphics[width=\textwidth]{example-image-a}% here goes the figure name
-    \caption{This is the figure caption.}
-    \label{fig:name_me_please}
-\end{figure}
+The project demonstrates that a relatively simple guidance and regulation architecture can achieve precise circular tracking for a nonlinear planar aircraft model. The outer-loop geometric correction removes large radial offsets effectively, while the inner-loop LQR keeps heading and bank dynamics well behaved. This division of responsibility leads to a controller that is both interpretable and computationally light.
 
-Figure \ref{fig:name_me_please}, is an example figure!
-The discussion is carefully structured so that precise and robust evidence is provided to underpin each conclusion. This incorporates evidence from the results section (precisely referenced, highlighting key features) and evidence from previous work that was described in the introduction.  
-A precise and well-structured critical comparison is made between the experimental/modelling results and previous work with a thorough exploration of all possible sources of uncertainty.
-The significance of the findings is precisely described with reference to the question/hypothesis that has been addressed.
+RK4 is important in this framework because the underlying aircraft model is nonlinear. The good steady-state performance indicates that numerical propagation error is not dominating the closed-loop response under the chosen time step. The estimator results also show that the simulation environment supports uncertainty analysis, even though estimation is not yet used inside the feedback loop.
 
+At the same time, the model remains simplified. The aircraft is limited to planar motion, the LQR design uses a first-order discretization, and the estimator is decoupled from the control action. These simplifications are acceptable for coursework demonstration, but they limit physical fidelity and robustness conclusions.
 
 \section{Conclusion}
 
-There is a brief and precise description of the context of the work such that it is easy to understand the significance of the conclusions.  
-Each conclusion is described precisely, and correlates exactly with the evidence discussed in the discussion section.
-The significance of the work is precisely described.
-There is no new information that has not been discussed in the rest of the report.
-The conclusions section correlates precisely with the abstract, and is easy to understand if taken out of context.
+This project successfully demonstrates an integrated Boeing 747 circular-tracking simulation pipeline. LQR provides stable and accurate inner-loop regulation, RK4 supplies reliable nonlinear state propagation, and Gaussian Bayes/MAP estimation offers interpretable uncertainty diagnostics. Under the default configuration, the system reaches very small steady-state cross-track and speed errors while respecting actuator limits.
 
+The main limitations are the planar flight assumption, simplified actuator and disturbance modeling, first-order discretization in LQR design, and the use of true state rather than estimated state for feedback. Future work should close the loop around estimated states, include wind and disturbance models, compare against alternative controllers such as MPC or nonlinear guidance laws, and extend the system to higher-fidelity aircraft dynamics.
+
+\section{One-Page Summary of Group Contributions}
+
+\subsection{Contribution Table}
+
+\begin{table}[!htb]
+\centering
+\caption{Group contribution summary}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.16\textwidth} >{\raggedright\arraybackslash}p{0.15\textwidth} >{\raggedright\arraybackslash}p{0.23\textwidth} >{\raggedright\arraybackslash}p{0.23\textwidth} >{\centering\arraybackslash}p{0.13\textwidth}}
+\toprule
+Group Member & Student ID & Specific Components & Deliverables / Evidence & Overall Contribution (\%) \\
+\midrule
+Yufa You & 25144639R & Report writing, project integration, final submission preparation & Final report editing and template integration & 50 \\
+Ruige Yang & 25145125R & Simulation analysis, controller-estimator review, result validation & Numerical result checking and technical review & 50 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\subsection{Narrative Summary}
+
+Yufa You prepared the integrated report, organized the methodology and results into the final submission format, and consolidated the project outputs into the LaTeX template. Ruige Yang reviewed the simulation framework, checked the reported numerical metrics against the project outputs, and refined the technical interpretation of the controller, dynamics, and estimator results. Both members jointly reviewed the final manuscript and validated the overall structure before submission.
 
 %TC:ignore
-%\clearpage %add new page for references
 \singlespacing
 \emergencystretch 3em
 \hfuzz 1px
 \printbibliography[heading=bibnumbered]
-
-% \clearpage
-% \begin{appendices}
-
-% \section{Here go any appendices!}
-
-% \end{appendices}
-
 %TC:endignore
 \end{document}
