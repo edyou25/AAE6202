@@ -27,3 +27,12 @@ python3 run.py
 - `dynamics.py`：波音 747 二维平面动力学模型 + RK4 积分器。
 - `estimation.py`：Bayes/MAP 状态估计模块（先验预测 + 测量更新）。
 - `visual.py`：飞机点云可视化模块（机身、机翼、尾翼）与动画导出。
+
+## LaTeX 报告
+- `latex/_main.tex`：课程报告主文件。
+- `latex/Academic.cls`：报告模板类文件。
+- `latex/abstract.tex`：摘要内容文件。
+- `latex/references.bib`：参考文献数据库。
+- `latex/wordcount.py`：LaTeX 正文字数统计脚本。
+- `latex/template/`：原始模板备份。
+- `latex/output/_main.pdf`：已生成的报告 PDF。
