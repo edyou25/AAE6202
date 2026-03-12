@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
+from pathlib import Path
 from time import perf_counter
 
 import numpy as np
@@ -43,21 +43,33 @@ def parse_args() -> argparse.Namespace:
     return _build_arg_parser().parse_args()
 
 
-def simulate():
-    p = B747Params()
-    cfg = ControlConfig(v_ref=210.0, dt=0.05)
-    ref = CircleRef(center_x=0.0, center_y=0.0, radius=12_0000.0, ccw=True)
+def simulate(
+    t_end: float = 800.0,
+    cfg: ControlConfig | None = None,
+    ref: CircleRef | None = None,
+    p: B747Params | None = None,
+    state0: np.ndarray | None = None,
+    estimator_cfg: EstimationConfig | None = None,
+    seed: int = 6202,
+):
+    """Run the circular-flight simulation and return telemetry arrays."""
+    p = p or B747Params()
+    cfg = cfg or ControlConfig(v_ref=210.0, dt=0.05)
+    ref = ref or CircleRef(center_x=0.0, center_y=0.0, radius=12_0000.0, ccw=True)
 
     ctrl = LQRCircleController(cfg, p)
 
-    t_end = 800.0
     n = int(t_end / cfg.dt)
     time = np.arange(n + 1) * cfg.dt
 
     # Start outside boundary with heading slightly off tangent.
-    state = np.array([ref.radius + 2000.0, 0.0, np.deg2rad(96.0), 0.0, cfg.v_ref], dtype=float)
-    estimator = GaussianMAPEstimator(x0=state, cfg=EstimationConfig())
-    rng = np.random.default_rng(6202)
+    default_state0 = np.array(
+        [ref.radius + 2000.0, 0.0, np.deg2rad(96.0), 0.0, cfg.v_ref],
+        dtype=float,
+    )
+    state = np.asarray(default_state0 if state0 is None else state0, dtype=float).copy()
+    estimator = GaussianMAPEstimator(x0=state, cfg=estimator_cfg or EstimationConfig())
+    rng = np.random.default_rng(seed)
 
     hist = np.zeros((n + 1, 5), dtype=float)
     e_ct_hist = np.zeros(n + 1, dtype=float)
@@ -172,7 +184,15 @@ def simulate():
     return time, hist, e_ct_hist, e_psi_hist, phi_cmd_hist, ref, telemetry
 
 
-def plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref):
+def plot_results(
+    time,
+    hist,
+    e_ct,
+    e_psi_deg,
+    phi_cmd_deg,
+    ref,
+    out_path: str | Path = "data/circle_flight_result.png",
+) -> str:
     x = hist[:, 0]
     y = hist[:, 1]
     phi_deg = np.rad2deg(hist[:, 3])
@@ -219,8 +239,11 @@ def plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref):
     ax4.legend()
 
     fig.tight_layout()
-    os.makedirs("data", exist_ok=True)
-    fig.savefig("data/circle_flight_result.png", dpi=150)
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return str(out_path)
 
 
 def main():
