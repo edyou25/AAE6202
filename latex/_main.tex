@@ -1,4 +1,21 @@
 \documentclass{Academic}
+\usepackage[most]{tcolorbox}
+
+\newtcblisting{projecttreebox}{
+  breakable,
+  colback=black!2,
+  colframe=black!35,
+  boxrule=0.5pt,
+  arc=2pt,
+  left=6pt,
+  right=6pt,
+  top=6pt,
+  bottom=6pt,
+  listing only,
+  title=Curated Project Tree,
+  fonttitle=\bfseries,
+  coltitle=black
+}
 
 \begin{document}
 %TC:ignore
@@ -533,6 +550,96 @@ The main limitations are the planar flight assumption, simplified actuator and d
 \section{Supplementary Implementation and Visualization Appendix}
 
 This appendix collects supplementary figures that support reproducibility, software understanding, and additional interpretation of the numerical results. These materials are not strictly necessary to understand the main conclusions, but they strengthen the traceability of the project from code structure to experimental evidence.
+
+\subsection{Project Directory Structure}
+
+For reproducibility and readability, a curated project tree is listed below in a code-block style based on the Windows \texttt{tree /F /A} output. Only the most important source files, reports, tests, and generated artifacts are retained, while cache folders and temporary directories are omitted.
+
+The file system is organized into six functional parts. The root directory contains the main simulation modules, including controller design, nonlinear dynamics, estimation, reporting, visualization, and the executable entry point. The \texttt{tests/} folder stores unit tests for each functional module. The \texttt{docs/} folder contains the written technical notes and report drafts in both Chinese and English. The \texttt{data/} folder stores generated figures, animations, metrics, and test outputs. The \texttt{latex/} folder contains the final report source, bibliography, class file, and compiled PDF artifacts. Finally, \texttt{assets/} and \texttt{addicted/} provide supporting media and supplementary reference materials used to validate the modeling and RK4-versus-Euler comparison.
+
+\begin{projecttreebox}
+AAE6202
+|-- controller.py
+|-- dynamics.py
+|-- estimation.py
+|-- reporting.py
+|-- extended_reporting.py
+|-- run.py
+|-- visual.py
+|-- env.yaml
+|-- README.md
+|-- README_en.md
+|-- rk4_vs_euler_comparison_fixed.png
+|-- assets
+|   |-- 747.png
+|   \-- anime.gif
+|-- data
+|   |-- circle_flight_animation.gif
+|   |-- report
+|   |   |-- part1_control.png
+|   |   |-- part2_dynamics.png
+|   |   |-- part3_estimation.png
+|   |   \-- simulation_overview.png
+|   |-- report_ext
+|   |   |-- controller_logic.png
+|   |   |-- dt_sensitivity.png
+|   |   |-- estimation_covariance_detail.png
+|   |   |-- lqr_weight_sensitivity.png
+|   |   |-- module_dependency.png
+|   |   |-- noise_sensitivity.png
+|   |   |-- radius_sensitivity.png
+|   |   |-- report_metrics.json
+|   |   |-- rk4_vs_euler_project.png
+|   |   |-- state_estimate_comparison.png
+|   |   |-- system_architecture.png
+|   |   |-- telemetry_pipeline.png
+|   |   |-- timing_distribution.png
+|   |   |-- trajectory_family.png
+|   |   \-- transient_detail.png
+|   \-- test_outputs
+|       |-- reporting
+|       |   |-- part1_control.png
+|       |   |-- part2_dynamics.png
+|       |   |-- part3_estimation.png
+|       |   \-- simulation_overview.png
+|       \-- run
+|           \-- summary.png
+|-- docs
+|   |-- estimation.md
+|   |-- estimation_en.md
+|   |-- lqr.md
+|   |-- lqr_en.md
+|   |-- project_report.md
+|   |-- rk.md
+|   |-- rk_en.md
+|   |-- unit_test_report.md
+|   \-- unit_test_report_en.md
+|-- latex
+|   |-- abstract.tex
+|   |-- Academic.cls
+|   |-- references.bib
+|   |-- wordcount.py
+|   |-- _main.tex
+|   |-- _main-words.tex
+|   |-- assets
+|   |   \-- polyu.pdf
+|   |-- output
+|   |   \-- _main.pdf
+|   \-- template
+|       |-- abstract.tex
+|       |-- Academic.cls
+|       |-- references.bib
+|       \-- _main.tex
+|-- tests
+|   |-- test_controller.py
+|   |-- test_dynamics.py
+|   |-- test_estimation.py
+|   |-- test_eular_rk.py
+|   |-- test_reporting.py
+|   |-- test_run.py
+|   \-- test_visual.py
+\-- addicted
+\end{projecttreebox}
 
 \subsection{Code-Module Dependency Structure}
 
