@@ -226,6 +226,15 @@ Q=\operatorname{diag}(30,\,10),\qquad R=[1].
 \]
 These weights are not taken from a handbook table; they are the baseline tuning adopted for the nominal simulation and the later sensitivity study.
 
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.86\textwidth]{assets/controller_logic.png}
+\caption{Detailed control-logic flow from geometric error to saturated command output.}
+\label{fig:controller-logic}
+\end{figure}
+
+Figure \ref{fig:controller-logic} makes the layered design explicit. Geometric guidance computes the desired heading, coordinated-turn physics provides a feedforward bank angle, and LQR then stabilizes the residual angular errors. This decomposition is easier to interpret and tune than a monolithic controller, which is one reason it works well in an educational setting.
+
 \subsection{Gaussian Bayes/MAP Estimator}
 
 From \texttt{estimation.py}, the estimator performs prediction, update, and MAP diagnostics.
@@ -275,6 +284,96 @@ At each simulation step in \texttt{run.py}, the following sequence is executed:
 
 From a software-engineering perspective, the project is organized as a compact closed-loop pipeline. The geometric reference is supplied to the controller, the controller generates bank-angle and thrust commands, the nonlinear B747 dynamics are propagated by RK4, and noisy measurements are processed by the Gaussian Bayes/MAP estimator. At the same time, telemetry signals such as tracking errors, timing, innovation norms, covariance traces, and state derivatives are collected for post-processing and report generation. This structure is intentionally modular: each mathematical part of the coursework corresponds directly to one code module.
 
+For reproducibility, the implementation structure is also summarized through a curated project tree. The root directory contains the main simulation modules, including controller design, nonlinear dynamics, estimation, reporting, visualization, and the executable entry point. The \texttt{tests/} folder stores unit tests for each functional module. The \texttt{docs/} folder contains the written technical notes and report drafts in both Chinese and English. The \texttt{data/} folder stores runtime animations, summary metrics, and test outputs. The \texttt{latex/} folder contains the final report source, bibliography, class file, compiled PDF artifacts, and a dedicated \texttt{assets/} directory that centralizes every Python-generated figure and Graphviz source referenced by the manuscript. Finally, \texttt{assets/} and \texttt{addicted/} provide supporting media and supplementary reference materials used to validate the modeling and RK4-versus-Euler comparison.
+
+\begin{projecttreebox}
+AAE6202
+|-- controller.py
+|-- dynamics.py
+|-- estimation.py
+|-- reporting.py
+|-- extended_reporting.py
+|-- run.py
+|-- visual.py
+|-- env.yaml
+|-- README.md
+|-- README_en.md
+|-- assets
+|   |-- 747.png
+|   \-- anime.gif
+|-- data
+|   |-- circle_flight_animation.gif
+|   |-- report_ext
+|   |   \-- report_metrics.json
+|   \-- test_outputs
+|       |-- reporting
+|       |   |-- part1_control.png
+|       |   |-- part2_dynamics.png
+|       |   |-- part3_estimation.png
+|       |   \-- simulation_overview.png
+|       \-- run
+|           \-- summary.png
+|-- docs
+|   |-- estimation.md
+|   |-- estimation_en.md
+|   |-- lqr.md
+|   |-- lqr_en.md
+|   |-- project_report.md
+|   |-- rk.md
+|   |-- rk_en.md
+|   |-- unit_test_report.md
+|   \-- unit_test_report_en.md
+|-- latex
+|   |-- abstract.tex
+|   |-- Academic.cls
+|   |-- references.bib
+|   |-- wordcount.py
+|   |-- _main.tex
+|   |-- _main-words.tex
+|   |-- assets
+|   |   |-- controller_logic.dot
+|   |   |-- controller_logic.png
+|   |   |-- dt_sensitivity.png
+|   |   |-- error_phase_and_hist.png
+|   |   |-- estimation_covariance_detail.png
+|   |   |-- lqr_weight_sensitivity.png
+|   |   |-- module_dependency.dot
+|   |   |-- module_dependency.png
+|   |   |-- noise_sensitivity.png
+|   |   |-- part1_control.png
+|   |   |-- part2_dynamics.png
+|   |   |-- part3_estimation.png
+|   |   |-- polyu.pdf
+|   |   |-- radius_sensitivity.png
+|   |   |-- rk4_vs_euler_comparison_fixed.png
+|   |   |-- rk4_vs_euler_project.png
+|   |   |-- simulation_overview.png
+|   |   |-- state_estimate_comparison.png
+|   |   |-- system_architecture.dot
+|   |   |-- system_architecture.png
+|   |   |-- telemetry_pipeline.dot
+|   |   |-- telemetry_pipeline.png
+|   |   |-- timing_distribution.png
+|   |   |-- trajectory_family.png
+|   |   \-- transient_detail.png
+|   |-- output
+|   |   \-- _main.pdf
+|   \-- template
+|       |-- abstract.tex
+|       |-- Academic.cls
+|       |-- references.bib
+|       \-- _main.tex
+|-- tests
+|   |-- test_controller.py
+|   |-- test_dynamics.py
+|   |-- test_estimation.py
+|   |-- test_eular_rk.py
+|   |-- test_reporting.py
+|   |-- test_run.py
+|   \-- test_visual.py
+\-- addicted
+\end{projecttreebox}
+
 \begin{figure}[!htb]
 \centering
 \includegraphics[width=0.95\textwidth]{assets/system_architecture.png}
@@ -292,6 +391,15 @@ Figure \ref{fig:system-architecture} emphasizes that the controller and estimato
 \end{figure}
 
 Figure \ref{fig:telemetry-pipeline} shows how runtime quantities are converted into engineering evidence. Controller solve time, tracking errors, state derivatives, and estimator statistics are first logged at every step, then reduced into scalar metrics and figures. This reporting-oriented architecture is important for the present assignment because it connects mathematical derivation with reproducible experimental validation.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.90\textwidth]{assets/module_dependency.png}
+\caption{Dependency structure among the main Python modules and test files.}
+\label{fig:module-dependency}
+\end{figure}
+
+Figure \ref{fig:module-dependency} shows that the project is structured around a clean separation of concerns: \texttt{controller.py} depends on aircraft parameters from \texttt{dynamics.py}, \texttt{estimation.py} reuses the propagation model, and both \texttt{reporting.py} and \texttt{extended\_reporting.py} depend on the runtime simulation entry point. This modularity is useful for testing and for extending the coursework toward more advanced future versions.
 
 \section{Results and Analysis}
 
@@ -341,6 +449,15 @@ Speed RMSE to \(v_{\mathrm{ref}}=210\) & \(0.276\,\mathrm{m/s}\) \\
 
 These results show that the large total RMSE is dominated by the intentional initial offset. After the transient phase, the aircraft converges closely to the desired circle and the residual radial error becomes very small. Bank-angle behavior remains within physical limits, and the command saturates only rarely, which indicates reasonable controller tuning. The speed regulation loop also performs well, with very small deviation from the target airspeed.
 
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.93\textwidth]{assets/part1_control.png}
+\caption{Detailed control figure: tracking errors, bank response, and control effort in the nominal case.}
+\label{fig:appendix-part1}
+\end{figure}
+
+Figure \ref{fig:appendix-part1} complements Table \ref{tab:tracking-metrics} by showing how the cross-track and angular errors decay, how the commanded and realized bank angles align, and how thrust and stage objective remain well behaved during convergence.
+
 \subsection{Computational Efficiency}
 
 Table \ref{tab:timing-metrics} reports controller and estimator timing.
@@ -362,6 +479,15 @@ Mean estimator update time & \(0.0344\,\mathrm{ms}\) \\
 \end{table}
 
 Both computations are negligible relative to the 50 ms control interval, so the framework is easily fast enough for the intended simulation setting.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.93\textwidth]{assets/timing_distribution.png}
+\caption{Distribution of controller and estimator computation times.}
+\label{fig:timing-distribution}
+\end{figure}
+
+The timing-distribution figure supplements the mean and percentile values reported in Table \ref{tab:timing-metrics}. It shows not only that the average runtime is small, but also that the distributions are compact and do not exhibit problematic long tails under the current experimental conditions.
 
 \subsection{Estimation Diagnostics}
 
@@ -386,6 +512,22 @@ Mean trace reduction \(\mathrm{tr}(P^-)\rightarrow\mathrm{tr}(P^+)\) & \(5.15\%\
 
 The covariance is reduced consistently after each update, confirming that the estimator contracts uncertainty. However, the posterior point estimate improves only modestly over the prior in this setup, suggesting that process and measurement confidence are of similar scale. Since the controller still uses the true state, estimator quality does not directly affect trajectory tracking in the current version.
 
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.93\textwidth]{assets/part3_estimation.png}
+\caption{Compact estimation summary: error norms, innovation, covariance trace, and true-versus-estimated position.}
+\label{fig:appendix-part3}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.93\textwidth]{assets/estimation_covariance_detail.png}
+\caption{Detailed estimation diagnostics: covariance traces, MAP objective, and innovation history.}
+\label{fig:estimation-covariance-detail}
+\end{figure}
+
+Figures \ref{fig:appendix-part3} and \ref{fig:estimation-covariance-detail} provide a more detailed view of the estimator behavior. The difference between \(\mathrm{tr}(P^-)\) and \(\mathrm{tr}(P^+)\) reflects uncertainty reduction after each update, while the MAP objective shows how the posterior balances model consistency and measurement agreement over time.
+
 \subsection{Visual Evidence}
 
 The generated figures and animation show that the aircraft starts outside the reference circle and converges smoothly to near-perfect circular motion. The heading and bank-angle transients decay without oscillatory instability, while telemetry remains bounded over the simulation horizon.
@@ -396,6 +538,15 @@ The generated figures and animation show that the aircraft starts outside the re
 \caption{Overview of circular tracking performance generated from the project code.}
 \label{fig:overview}
 \end{figure}
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.93\textwidth]{assets/part2_dynamics.png}
+\caption{Detailed dynamics figure: trajectory, translational rates, angular rates, and speed behavior.}
+\label{fig:appendix-part2}
+\end{figure}
+
+Figure \ref{fig:appendix-part2} complements the global overview by showing the dynamic states directly. The nominal trajectory follows the reference geometry cleanly, and the translational, angular, and speed channels all remain smooth and bounded throughout the maneuver.
 
 \subsection{Cross-Check with Supplementary RK4/Euler Study}
 
@@ -487,6 +638,15 @@ Reference geometry also influences control effort, because smaller circles requi
 
 As the reference radius increases, the feedforward bank angle decreases monotonically, which is physically consistent with coordinated-turn theory. The observed maximum bank angle follows the same trend, falling from about \(28.53^\circ\) at \(80{,}000\,\mathrm{m}\) to about \(26.96^\circ\) at \(200{,}000\,\mathrm{m}\). The tracking RMSE changes only modestly, which indicates that the controller structure generalizes well across a range of path curvatures. This is a useful robustness property for trajectory-tracking applications, where mission geometry may vary.
 
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.93\textwidth]{assets/trajectory_family.png}
+\caption{Family of closed-loop trajectories under different reference-circle radii.}
+\label{fig:trajectory-family}
+\end{figure}
+
+Figure \ref{fig:trajectory-family} adds a geometric interpretation to the scalar sensitivity metrics. It shows visually that all tested cases converge toward their respective circles without pathological behavior, even though the curvature and required bank-angle demand change substantially.
+
 \subsection{Sensitivity to Measurement Noise}
 
 The estimator is expected to be more sensitive to sensor quality than the controller, because the current controller still uses the true state. Figure \ref{fig:noise-sensitivity} verifies this intuition by scaling the measurement-noise covariance over a factor range from \(0.5\) to \(4.0\).
@@ -545,186 +705,6 @@ If the framework were extended in future work, one natural path would be to move
 This project successfully demonstrates an integrated Boeing 747 circular-tracking simulation pipeline. LQR provides stable and accurate inner-loop regulation, RK4 supplies reliable nonlinear state propagation, and Gaussian Bayes/MAP estimation offers interpretable uncertainty diagnostics. Under the default configuration, the system reaches very small steady-state cross-track and speed errors while respecting actuator limits.
 
 The main limitations are the planar flight assumption, simplified actuator and disturbance modeling, first-order discretization in LQR design, and the use of true state rather than estimated state for feedback. Future work should close the loop around estimated states, include wind and disturbance models, compare against alternative controllers such as MPC or nonlinear guidance laws, and extend the system to higher-fidelity aircraft dynamics.
-
-\clearpage
-\appendix
-\section{Supplementary Implementation and Visualization Appendix}
-
-This appendix collects supplementary figures that support reproducibility, software understanding, and additional interpretation of the numerical results. These materials are not strictly necessary to understand the main conclusions, but they strengthen the traceability of the project from code structure to experimental evidence.
-
-\subsection{Project Directory Structure}
-
-For reproducibility and readability, a curated project tree is listed below in a code-block style based on the Windows \texttt{tree /F /A} output. Only the most important source files, reports, tests, and generated artifacts are retained, while cache folders and temporary directories are omitted.
-
-The file system is organized into six functional parts. The root directory contains the main simulation modules, including controller design, nonlinear dynamics, estimation, reporting, visualization, and the executable entry point. The \texttt{tests/} folder stores unit tests for each functional module. The \texttt{docs/} folder contains the written technical notes and report drafts in both Chinese and English. The \texttt{data/} folder stores runtime animations, summary metrics, and test outputs. The \texttt{latex/} folder contains the final report source, bibliography, class file, compiled PDF artifacts, and a dedicated \texttt{assets/} directory that centralizes every Python-generated figure and Graphviz source referenced by the manuscript. Finally, \texttt{assets/} and \texttt{addicted/} provide supporting media and supplementary reference materials used to validate the modeling and RK4-versus-Euler comparison.
-
-\begin{projecttreebox}
-AAE6202
-|-- controller.py
-|-- dynamics.py
-|-- estimation.py
-|-- reporting.py
-|-- extended_reporting.py
-|-- run.py
-|-- visual.py
-|-- env.yaml
-|-- README.md
-|-- README_en.md
-|-- assets
-|   |-- 747.png
-|   \-- anime.gif
-|-- data
-|   |-- circle_flight_animation.gif
-|   |-- report_ext
-|   |   \-- report_metrics.json
-|   \-- test_outputs
-|       |-- reporting
-|       |   |-- part1_control.png
-|       |   |-- part2_dynamics.png
-|       |   |-- part3_estimation.png
-|       |   \-- simulation_overview.png
-|       \-- run
-|           \-- summary.png
-|-- docs
-|   |-- estimation.md
-|   |-- estimation_en.md
-|   |-- lqr.md
-|   |-- lqr_en.md
-|   |-- project_report.md
-|   |-- rk.md
-|   |-- rk_en.md
-|   |-- unit_test_report.md
-|   \-- unit_test_report_en.md
-|-- latex
-|   |-- abstract.tex
-|   |-- Academic.cls
-|   |-- references.bib
-|   |-- wordcount.py
-|   |-- _main.tex
-|   |-- _main-words.tex
-|   |-- assets
-|   |   |-- controller_logic.dot
-|   |   |-- controller_logic.png
-|   |   |-- dt_sensitivity.png
-|   |   |-- error_phase_and_hist.png
-|   |   |-- estimation_covariance_detail.png
-|   |   |-- lqr_weight_sensitivity.png
-|   |   |-- module_dependency.dot
-|   |   |-- module_dependency.png
-|   |   |-- noise_sensitivity.png
-|   |   |-- part1_control.png
-|   |   |-- part2_dynamics.png
-|   |   |-- part3_estimation.png
-|   |   |-- polyu.pdf
-|   |   |-- radius_sensitivity.png
-|   |   |-- rk4_vs_euler_comparison_fixed.png
-|   |   |-- rk4_vs_euler_project.png
-|   |   |-- simulation_overview.png
-|   |   |-- state_estimate_comparison.png
-|   |   |-- system_architecture.dot
-|   |   |-- system_architecture.png
-|   |   |-- telemetry_pipeline.dot
-|   |   |-- telemetry_pipeline.png
-|   |   |-- timing_distribution.png
-|   |   |-- trajectory_family.png
-|   |   \-- transient_detail.png
-|   |-- output
-|   |   \-- _main.pdf
-|   \-- template
-|       |-- abstract.tex
-|       |-- Academic.cls
-|       |-- references.bib
-|       \-- _main.tex
-|-- tests
-|   |-- test_controller.py
-|   |-- test_dynamics.py
-|   |-- test_estimation.py
-|   |-- test_eular_rk.py
-|   |-- test_reporting.py
-|   |-- test_run.py
-|   \-- test_visual.py
-\-- addicted
-\end{projecttreebox}
-
-\subsection{Code-Module Dependency Structure}
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.90\textwidth]{assets/module_dependency.png}
-\caption{Dependency structure among the main Python modules and test files.}
-\label{fig:module-dependency}
-\end{figure}
-
-Figure \ref{fig:module-dependency} shows that the project is structured around a clean separation of concerns: \texttt{controller.py} depends on aircraft parameters from \texttt{dynamics.py}, \texttt{estimation.py} reuses the propagation model, and both \texttt{reporting.py} and \texttt{extended\_reporting.py} depend on the runtime simulation entry point. This modularity is useful for testing and for extending the coursework toward more advanced future versions.
-
-\subsection{Controller Logic Diagram}
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.86\textwidth]{assets/controller_logic.png}
-\caption{Detailed control-logic flow from geometric error to saturated command output.}
-\label{fig:controller-logic}
-\end{figure}
-
-The control-logic diagram clarifies the layered design philosophy used throughout the project. Geometric guidance computes the desired heading, coordinated-turn physics provides a feedforward bank angle, and LQR then stabilizes the residual angular errors. This decomposition is easier to interpret and tune than a monolithic controller, which is one reason it works well in an educational setting.
-
-\subsection{Trajectory Family for Different Reference Radii}
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.93\textwidth]{assets/trajectory_family.png}
-\caption{Family of closed-loop trajectories under different reference-circle radii.}
-\label{fig:trajectory-family}
-\end{figure}
-
-This trajectory family complements the radius-sensitivity metrics in the main text. It shows visually that all tested cases converge toward their respective circles without pathological behavior, even though the curvature and required bank-angle demand change substantially.
-
-\subsection{Timing Distribution Diagnostics}
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.93\textwidth]{assets/timing_distribution.png}
-\caption{Distribution of controller and estimator computation times.}
-\label{fig:timing-distribution}
-\end{figure}
-
-The timing-distribution figure supplements the mean and percentile values reported earlier. It shows not only that the average runtime is small, but also that the distributions are compact and do not exhibit problematic long tails under the current experimental conditions.
-
-\subsection{Covariance and MAP-Diagnostic Evolution}
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.93\textwidth]{assets/estimation_covariance_detail.png}
-\caption{Detailed estimation diagnostics: covariance traces, MAP objective, and innovation history.}
-\label{fig:estimation-covariance-detail}
-\end{figure}
-
-This figure provides a closer look at the stochastic side of the project. The difference between \(\mathrm{tr}(P^-)\) and \(\mathrm{tr}(P^+)\) reflects the reduction of uncertainty after each update, while the MAP objective provides a compact scalar indication of how strongly the posterior compromises between model prediction and measurement agreement.
-
-\subsection{Core Report Figures Generated by Python}
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.93\textwidth]{assets/part1_control.png}
-\caption{Part 1 figure: control errors, bank tracking, and control effort.}
-\label{fig:appendix-part1}
-\end{figure}
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.93\textwidth]{assets/part2_dynamics.png}
-\caption{Part 2 figure: dynamics propagation, rates, and speed behavior.}
-\label{fig:appendix-part2}
-\end{figure}
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.93\textwidth]{assets/part3_estimation.png}
-\caption{Part 3 figure: estimation errors, innovation, covariance, and true-versus-estimated position.}
-\label{fig:appendix-part3}
-\end{figure}
-
-Together, Figures \ref{fig:appendix-part1}--\ref{fig:appendix-part3} provide a compact visual mapping from the three mathematical parts of the assignment to the actual implementation outputs. Including them in the appendix makes the report more self-contained and makes it easier for a reader to cross-check the code-generated evidence against the text discussion.
 
 \section{One-Page Summary of Group Contributions}
 

@@ -23,7 +23,7 @@ class VisualTests(unittest.TestCase):
         npt.assert_allclose(cloud_2x.fuselage, 2.0 * cloud_1x.fuselage)
         npt.assert_allclose(cloud_2x.h_tail, 2.0 * cloud_1x.h_tail)
 
-    def test_build_frame_schedule_downsamples_to_requested_fps(self) -> None:
+    def test_build_frame_schedule_uses_requested_fps(self) -> None:
         time = np.linspace(0.0, 10.0, 1001)
 
         frame_ids, interval_ms, writer_fps = _build_frame_schedule(
@@ -36,8 +36,22 @@ class VisualTests(unittest.TestCase):
         self.assertEqual(frame_ids[0], 0)
         self.assertEqual(frame_ids[-1], time.size - 1)
         self.assertTrue(np.all(np.diff(frame_ids) > 0))
-        self.assertLessEqual(writer_fps, 20)
-        self.assertGreater(interval_ms, 0.0)
+        self.assertEqual(writer_fps, 20)
+        self.assertAlmostEqual(interval_ms, 50.0)
+
+    def test_build_frame_schedule_respects_max_frames(self) -> None:
+        time = np.linspace(0.0, 10.0, 1001)
+
+        frame_ids, interval_ms, writer_fps = _build_frame_schedule(
+            time=time,
+            n_states=time.size,
+            fps=30,
+            max_frames=40,
+        )
+
+        self.assertEqual(frame_ids.size, 40)
+        self.assertEqual(writer_fps, 30)
+        self.assertAlmostEqual(interval_ms, 1000.0 / 30.0)
 
 
 if __name__ == "__main__":

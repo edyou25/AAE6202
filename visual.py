@@ -124,38 +124,10 @@ def _build_frame_schedule(
     fps: int,
     max_frames: int,
 ) -> tuple[np.ndarray, float, int]:
-    """Build frame ids and timing without speeding up simulation time."""
+    """Build frame ids and playback timing for a compact animation."""
     fps_req = max(1, int(fps))
     frame_ids = _frame_indices(n_states, max_frames=max_frames)
-
-    if frame_ids.size < 2:
-        return frame_ids, 1000.0 / fps_req, fps_req
-
-    sim_t0 = float(time[frame_ids[0]])
-    sim_t1 = float(time[frame_ids[-1]])
-    sim_span = max(0.0, sim_t1 - sim_t0)
-
-    if sim_span <= 0.0:
-        return frame_ids, 1000.0 / fps_req, fps_req
-
-    # Keep playback in real simulation time: wall-time span == simulation span.
-    interval_ms = 1000.0 * sim_span / float(frame_ids.size - 1)
-    fps_real_time = float(frame_ids.size - 1) / sim_span
-
-    # Never exceed requested fps; if necessary, downsample further.
-    if fps_real_time > fps_req:
-        n_frames_req = int(np.floor(sim_span * fps_req)) + 1
-        n_frames = max(2, min(n_frames_req, frame_ids.size))
-        frame_ids = np.linspace(frame_ids[0], frame_ids[-1], n_frames, dtype=int)
-        frame_ids = np.unique(frame_ids)
-        if frame_ids.size < 2:
-            frame_ids = np.array([0, n_states - 1], dtype=int) if n_states > 1 else np.array([0], dtype=int)
-        sim_span = max(1e-12, float(time[frame_ids[-1]] - time[frame_ids[0]]))
-        interval_ms = 1000.0 * sim_span / float(frame_ids.size - 1)
-        fps_real_time = float(frame_ids.size - 1) / sim_span
-
-    writer_fps = max(1, int(round(fps_real_time)))
-    return frame_ids, interval_ms, writer_fps
+    return frame_ids, 1000.0 / fps_req, fps_req
 
 
 def _series_with_default(

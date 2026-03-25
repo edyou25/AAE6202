@@ -7,10 +7,15 @@ import matplotlib
 matplotlib.use("Agg")
 
 from controller import ControlConfig
-from run import plot_results, simulate
+from run import _backend_supports_show, plot_results, simulate
 
 
 class RunModuleTests(unittest.TestCase):
+    def test_backend_supports_show_matches_backend_type(self) -> None:
+        self.assertFalse(_backend_supports_show("Agg"))
+        self.assertFalse(_backend_supports_show("module://matplotlib_inline.backend_inline"))
+        self.assertTrue(_backend_supports_show("TkAgg"))
+
     def test_simulate_supports_short_horizon(self) -> None:
         cfg = ControlConfig(v_ref=210.0, dt=0.1)
         time, hist, e_ct, e_psi_deg, phi_cmd_deg, _, telemetry = simulate(

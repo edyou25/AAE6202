@@ -9,20 +9,50 @@ from time import perf_counter
 
 import numpy as np
 
+NON_INTERACTIVE_BACKENDS = {
+    "agg",
+    "cairo",
+    "pdf",
+    "pgf",
+    "ps",
+    "svg",
+    "template",
+    "module://matplotlib_inline.backend_inline",
+    "matplotlib_inline.backend_inline",
+}
+
 
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="B747 circular-flight simulation")
     parser.add_argument(
         "--show-animation",
+        dest="show_animation",
         action="store_true",
-        default=True,
         help="Play point-cloud animation in an interactive window.",
+    )
+    parser.add_argument(
+        "--no-show-animation",
+        dest="show_animation",
+        action="store_false",
+        help="Skip the interactive window.",
+    )
+    parser.set_defaults(show_animation=True)
+    parser.add_argument(
+        "--save-animation",
+        action="store_true",
+        help="Export the animation to disk.",
+    )
+    parser.add_argument(
+        "--animation-path",
+        type=str,
+        default="data/circle_flight_animation.gif",
+        help="Output file used when exporting the animation.",
     )
     parser.add_argument("--fps", type=int, default=60, help="Animation frame rate.")
     parser.add_argument(
         "--max-frames",
         type=int,
-        default=0,
+        default=600,
         help="Maximum frames used for animation playback/export (0 means use all simulation frames).",
     )
     return parser
@@ -41,6 +71,31 @@ from visual import save_flight_animation, show_flight_animation
 
 def parse_args() -> argparse.Namespace:
     return _build_arg_parser().parse_args()
+
+
+def _backend_supports_show(backend: str | None = None) -> bool:
+    backend_name = str(backend or matplotlib.get_backend() or "").strip().lower()
+    if not backend_name:
+        return False
+    return backend_name not in NON_INTERACTIVE_BACKENDS
+
+
+def _ensure_interactive_backend() -> str:
+    backend_name = str(matplotlib.get_backend())
+    if _backend_supports_show(backend_name):
+        return backend_name
+
+    for candidate in ("TkAgg", "QtAgg"):
+        try:
+            plt.switch_backend(candidate)
+        except Exception:
+            continue
+
+        backend_name = str(matplotlib.get_backend())
+        if _backend_supports_show(backend_name):
+            return backend_name
+
+    return backend_name
 
 
 def simulate(
@@ -248,36 +303,48 @@ def plot_results(
 
 def main():
     args = parse_args()
-    args.max_frames = 600
 
     time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref, telemetry = simulate()
     print(f"Final position: x={hist[-1,0]:.1f} m, y={hist[-1,1]:.1f} m")
     print(f"Final speed: {hist[-1,4]:.2f} m/s")
     print(f"Final signed cross-track error: {e_ct[-1]:.2f} m")
     print(f"Final |cross-track error|: {abs(e_ct[-1]):.2f} m")
+    n_anim_frames = args.max_frames if args.max_frames > 0 else hist.shape[0]
+    playback_seconds = n_anim_frames / max(1, args.fps)
+    print(f"Animation playback length: ~{playback_seconds:.1f} s at {args.fps} fps")
 
     # plot_results(time, hist, e_ct, e_psi_deg, phi_cmd_deg, ref)
     # print("Saved figure: data/circle_flight_result.png")
 
-    print("Saving animation...")
-    anim = show_flight_animation(
-        time=time,
-        hist=hist,
-        ref=ref,
-        fps=args.fps,
-        max_frames=args.max_frames,
-        telemetry=telemetry,
-    )
-    # saved_anim = save_flight_animation(
-    #     time=time,
-    #     hist=hist,
-    #     ref=ref,
-    #     out_path="data/circle_flight_animation.gif",
-    #     fps=args.fps,
-    #     max_frames=args.max_frames,
-    #     telemetry=telemetry,
-    # )
-    # print(f"Saved animation: {saved_anim}")
+    backend_name = str(matplotlib.get_backend())
+    if args.show_animation:
+        backend_name = _ensure_interactive_backend()
+
+    can_show = args.show_animation and _backend_supports_show(backend_name)
+    if can_show:
+        print(f"Showing animation with backend: {backend_name}")
+        show_flight_animation(
+            time=time,
+            hist=hist,
+            ref=ref,
+            fps=args.fps,
+            max_frames=args.max_frames,
+            telemetry=telemetry,
+        )
+    elif args.show_animation:
+        print(f"Matplotlib backend '{backend_name}' is non-interactive; saving animation instead.")
+
+    if args.save_animation or not can_show:
+        saved_anim = save_flight_animation(
+            time=time,
+            hist=hist,
+            ref=ref,
+            out_path=args.animation_path,
+            fps=args.fps,
+            max_frames=args.max_frames,
+            telemetry=telemetry,
+        )
+        print(f"Saved animation: {saved_anim}")
 
 
 if __name__ == "__main__":
