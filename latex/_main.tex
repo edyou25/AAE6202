@@ -18,6 +18,23 @@
   coltitle=black
 }
 
+\newtcblisting{yamlcodebox}{
+  breakable,
+  colback=black!2,
+  colframe=black!35,
+  boxrule=0.5pt,
+  arc=2pt,
+  left=6pt,
+  right=6pt,
+  top=6pt,
+  bottom=6pt,
+  listing only,
+  listing options={basicstyle=\ttfamily\scriptsize},
+  title=Environment File (\texttt{env.yaml}),
+  fonttitle=\bfseries,
+  coltitle=black
+}
+
 \captionsetup[table]{skip=4pt}
 \setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
 \setlength{\floatsep}{10pt plus 2pt minus 2pt}
@@ -31,9 +48,9 @@
 
 \begin{document}
 %TC:ignore
-\myabstract{This project develops an integrated simulation framework for Boeing 747 circular-flight tracking in a 2D plane. The framework combines: (i) a linear quadratic regulator (LQR) for heading/bank inner-loop stabilization, (ii) a fourth-order Runge-Kutta (RK4) integrator for nonlinear aircraft dynamics propagation, and (iii) a Gaussian Bayes/MAP estimator for state estimation diagnostics under noisy measurements. Numerical experiments based on the project code show accurate path convergence and stable speed regulation, with final cross-track error close to zero and bounded bank angle throughout the simulation horizon. The report presents problem formulation, methodology, numerical results, and limitations.}
+\myabstract{This project develops an integrated simulation framework for Boeing 747 circular-flight tracking in a 2D plane. The framework combines: (i) a linear quadratic regulator (LQR) for heading/bank inner-loop control, (ii) a fourth-order Runge-Kutta (RK4) integrator for nonlinear aircraft dynamics stimulation, and (iii) a Gaussian Bayes/MAP estimator for state estimation under noisy measurements. Numerical experiments based on the project code show accurate path convergence and stable speed regulation, with final cross-track error close to zero and bounded bank angle throughout the simulation horizon. The report presents problem formulation, methodology, numerical results, and limitations. All LaTeX sources and Python code are openly available at \url{https://github.com/edyou25/AAE6202}.}
 \renewcommand{\myTitle}{Boeing 747 Trajectory Tracking via Optimization, ODEs Solving, and State Estimation}
-\renewcommand{\MyAuthor}{Yufa You, Ruige Yang}
+\renewcommand{\MyAuthor}{Yufa You$^{1}$, Ruige Yang}
 \renewcommand{\MyDepartment}{Department of Aeronautical and Aviation Engineering}
 \renewcommand{\MyCourse}{AAE6202 Mathematics and Computational Methods for Aviation Engineering Applications }
 \renewcommand{\ID}{25144639R, 25145125R}
@@ -45,14 +62,14 @@
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.42\textwidth]{../assets/747.png}
-\caption{Representative Boeing 747 airframe image corresponding to the aircraft class modeled in this report.}
+\includegraphics[width=0.62\textwidth]{../assets/747.png}
+\caption{Representative Boeing 747 airframe image.}
 \label{fig:b747-photo}
 \end{figure}
 
 \section{Introduction}
 
-This project studies circular trajectory tracking for a Boeing 747 model in planar flight. The goal is to build a compact workflow that combines control, nonlinear simulation, and state estimation inside one executable framework. The implemented architecture has three core components: an LQR controller for heading and bank regulation, RK4 numerical integration for nonlinear propagation, and a Gaussian Bayes/MAP estimator for estimation diagnostics.
+This project studies 2D circular trajectory tracking for a Boeing 747 model in planar flight. The goal is to build a compact workflow that combines control, simulation, and state estimation inside one framework. The implemented architecture has three core components: an LQR controller for heading and bank regulation, RK4 numerical integration for nonlinear propagation, and a Gaussian Bayes/MAP estimator for estimation diagnostics.
 
 The overall structure of the project is also aligned with the learning objectives of AAE6202, which emphasize optimization, computational solution of differential equations, and uncertainty-aware mathematical methods for aviation engineering applications \supercite{liu2026aae6202}.
 
@@ -76,6 +93,13 @@ with \(Q \succeq 0\) and \(R \succ 0\), leading to linear feedback \(u_k=-Kx_k\)
 Aircraft motion remains nonlinear, so numerical integration is required. RK4 provides a practical balance between computational cost and accuracy and is commonly used for control-oriented flight simulation \supercite{hairer1993,butcher2016}. Compared with forward Euler, RK4 reduces truncation error significantly while remaining straightforward to implement.
 
 The third component is Gaussian Bayesian estimation. Under Gaussian assumptions, a Bayes update is equivalent to a weighted MAP problem, linking estimation with uncertainty interpretation \supercite{kalman1960,simon2006,welch2006}. In the current code, the estimator is used for diagnostics rather than closed-loop feedback, but it still provides insight into innovation magnitude, covariance contraction, and posterior consistency.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.99\textwidth,height=0.42\textheight,keepaspectratio]{assets/system_architecture.png}
+\caption{System-level architecture of the integrated controller--simulation--estimator workflow.}
+\label{fig:system-architecture}
+\end{figure}
 
 More broadly, the present work is also related to the larger optimization literature. The quadratic-cost formulation behind LQR is naturally connected to classical linear and nonlinear programming \supercite{luenberger2008}, while the tuning of state and input penalties follows the logic of convex optimization and structured tradeoff design \supercite{boyd2004}. From the viewpoint of nonlinear state evolution, the trajectory-tracking problem can also be interpreted as a controlled dynamical system whose transient and asymptotic behavior is best understood in state-space terms \supercite{scheinerman2012,dilao2023}. In addition, although the current project is not formulated as a full uncertainty-aware optimization model, its estimator and sensitivity studies connect naturally to stochastic programming, robust optimization, and distributionally robust optimization \supercite{birge1997,haneveld2020,bental2009,bertsimas2011,blanchet2024,bomze2022}.
 
@@ -134,15 +158,19 @@ The problem is simplified by the following assumptions:
 
 \section{Methodology}
 
-\subsection{Parameter Provenance}
+\subsection{Parameter Reference}
 
 To make the numerical setup auditable, the report distinguishes between sourced airframe parameters and simulation assumptions. Published B747-400 geometry, mass, and engine data are taken from public aerospace references, while controller gains, estimator covariances, time-step choices, and closed-loop experiment settings are declared explicitly as modeling decisions for this coursework study. Table \ref{tab:param-provenance} summarizes the provenance of the main numerical values used in the report.
 
 \begin{table}[!htb]
 \centering
-\caption{Provenance of the main numerical parameters used in the report.}
+\caption{The main numerical parameters used in the report.}
 \label{tab:param-provenance}
-\begin{tabular}{p{0.22\textwidth} p{0.27\textwidth} p{0.39\textwidth}}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.02}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.24\textwidth} >{\raggedright\arraybackslash}p{0.28\textwidth} >{\raggedright\arraybackslash}p{0.38\textwidth}@{}}
 \toprule
 Parameter group & Values used in this report & Source of the values \\
 \midrule
@@ -157,6 +185,7 @@ Sensitivity sweeps & \(\Delta t\in\{0.02,0.05,0.10,0.20\}\,\mathrm{s}\), \(R\in\
 RK4/Euler benchmark & \(\Delta t_{\mathrm{ref}}=0.05\,\mathrm{s}\), \(\Delta t_{\mathrm{test}}=0.5\,\mathrm{s}\), \(T_{\mathrm{sim}}=100\,\mathrm{s}\), \(\phi_{\mathrm{cmd}}=15^\circ+10^\circ\sin(2\pi t/20)\) & Independent numerical benchmark settings chosen to compare integrators under oscillatory bank input \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
 \end{table}
 
 \subsection{Nonlinear B747 Planar Dynamics}
@@ -371,14 +400,23 @@ AAE6202
 \-- .git
 \end{projecttreebox}
 
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.99\textwidth,height=0.42\textheight,keepaspectratio]{assets/system_architecture.png}
-\caption{System-level architecture of the integrated controller--simulation--estimator workflow.}
-\label{fig:system-architecture}
-\end{figure}
 
 Figure \ref{fig:system-architecture} emphasizes that the controller and estimator use the same dynamic context but serve different roles. The controller shapes trajectory-tracking behavior, whereas the estimator is currently diagnostic and does not yet close the feedback loop. This separation is useful in a course project because it allows control performance and estimation behavior to be studied independently before tighter integration is attempted.
+
+\begin{yamlcodebox}
+name: aae6202
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - matplotlib
+  - pillow
+  - pip
+\end{yamlcodebox}
+
+
 
 \section{Results}
 
@@ -687,15 +725,15 @@ The main limitations are the planar flight assumption, simplified actuator and d
 \toprule
 Group Member & Student ID & Specific Components & Deliverables / Evidence & Overall Contribution (\%) \\
 \midrule
-Yufa You & 25144639R & Report writing, project integration, final submission preparation & Final report editing and template integration & 50 \\
-Ruige Yang & 25145125R & Simulation analysis, controller-estimator review, result validation & Numerical result checking and technical review & 50 \\
+Yufa You & 25144639R & Topic selection, coding, algorithm design, report writing & Core project implementation, algorithm development, and report drafting & 50 \\
+Ruige Yang & 25145125R & Formula derivation, experimental result organization, presentation preparation & Analytical derivations, result curation, and presentation materials & 50 \\
 \bottomrule
 \end{tabular}
 \end{adjustbox}
 \end{table}
 
 
-Yufa You prepared the integrated report, organized the methodology and results into the final submission format, and consolidated the project outputs into the LaTeX template. Ruige Yang reviewed the simulation framework, checked the reported numerical metrics against the project outputs, and refined the technical interpretation of the controller, dynamics, and estimator results. Both members jointly reviewed the final manuscript and validated the overall structure before submission.
+Yufa You led topic selection, implemented the main codebase, designed the core algorithms, and wrote the report. Ruige Yang focused on formula derivation, organization of the experimental results, and preparation of the presentation materials. Both members jointly reviewed the final manuscript and checked the consistency of the submitted outputs.
 
 %TC:ignore
 \singlespacing
