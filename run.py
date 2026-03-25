@@ -48,6 +48,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default="data/circle_flight_animation.gif",
         help="Output file used when exporting the animation.",
     )
+    parser.add_argument(
+        "--mpl-backend",
+        type=str,
+        default="",
+        help="Preferred interactive matplotlib backend, e.g. TkAgg or QtAgg.",
+    )
     parser.add_argument("--fps", type=int, default=60, help="Animation frame rate.")
     parser.add_argument(
         "--max-frames",
@@ -66,7 +72,7 @@ import matplotlib.pyplot as plt
 from controller import CircleRef, ControlConfig, LQRCircleController
 from dynamics import B747Params, b747_dynamics, rk4_step
 from estimation import EstimationConfig, GaussianMAPEstimator
-from visual import save_flight_animation, show_flight_animation
+from visual import plot_aircraft_snapshots, save_flight_animation, show_flight_animation
 
 
 def parse_args() -> argparse.Namespace:
@@ -96,6 +102,14 @@ def _ensure_interactive_backend() -> str:
             return backend_name
 
     return backend_name
+
+
+def _switch_to_backend(preferred_backend: str) -> str:
+    if not preferred_backend:
+        return str(matplotlib.get_backend())
+
+    plt.switch_backend(preferred_backend)
+    return str(matplotlib.get_backend())
 
 
 def simulate(
@@ -262,6 +276,14 @@ def plot_results(
     ax1 = fig.add_subplot(2, 2, 1)
     ax1.plot(x_ref, y_ref, "k--", linewidth=1.5, label="Reference Circle")
     ax1.plot(x, y, "b", linewidth=1.5, label="B747 Trajectory")
+    plot_aircraft_snapshots(
+        ax1,
+        hist,
+        n_snapshots=3,
+        scale=150.0,
+        alpha=0.92,
+        zorder=3.5,
+    )
     ax1.set_aspect("equal", adjustable="box")
     ax1.set_xlabel("x (m)")
     ax1.set_ylabel("y (m)")
@@ -318,7 +340,14 @@ def main():
 
     backend_name = str(matplotlib.get_backend())
     if args.show_animation:
-        backend_name = _ensure_interactive_backend()
+        if args.mpl_backend:
+            try:
+                backend_name = _switch_to_backend(args.mpl_backend)
+            except Exception as exc:
+                print(f"Failed to switch to backend '{args.mpl_backend}': {exc}")
+                backend_name = _ensure_interactive_backend()
+        else:
+            backend_name = _ensure_interactive_backend()
 
     can_show = args.show_animation and _backend_supports_show(backend_name)
     if can_show:

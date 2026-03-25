@@ -20,6 +20,7 @@ from report_assets import (
     save_figure,
 )
 from run import plot_results, simulate
+from visual import plot_aircraft_snapshots
 
 
 def _mirror_paths(output_dir: Path, filename: str) -> tuple[Path, ...]:
@@ -104,6 +105,14 @@ def save_report_figures(
     y_ref = ref.center_y + ref.radius * np.sin(th)
     axes2[0, 0].plot(x_ref, y_ref, "k--", linewidth=1.2, label="reference")
     axes2[0, 0].plot(hist[:, 0], hist[:, 1], label="trajectory")
+    plot_aircraft_snapshots(
+        axes2[0, 0],
+        hist,
+        indices=[0, hist.shape[0] // 2, hist.shape[0] - 1],
+        scale=140.0,
+        alpha=0.9,
+        zorder=3.5,
+    )
     axes2[0, 0].set_aspect("equal", adjustable="box")
     axes2[0, 0].set_title("Trajectory")
     axes2[0, 0].set_xlabel("x (m)")

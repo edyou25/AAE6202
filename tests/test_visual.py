@@ -1,9 +1,10 @@
 import unittest
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.testing as npt
 
-from visual import _build_frame_schedule, body_to_world, build_aircraft_point_cloud
+from visual import _build_frame_schedule, body_to_world, build_aircraft_point_cloud, plot_aircraft_snapshots
 
 
 class VisualTests(unittest.TestCase):
@@ -52,6 +53,24 @@ class VisualTests(unittest.TestCase):
         self.assertEqual(frame_ids.size, 40)
         self.assertEqual(writer_fps, 30)
         self.assertAlmostEqual(interval_ms, 1000.0 / 30.0)
+
+    def test_plot_aircraft_snapshots_returns_artists(self) -> None:
+        hist = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [10.0, 5.0, 0.1],
+                [20.0, 10.0, 0.2],
+            ],
+            dtype=float,
+        )
+
+        fig, ax = plt.subplots()
+        try:
+            artists = plot_aircraft_snapshots(ax, hist, indices=[0, 2], scale=2.0)
+        finally:
+            plt.close(fig)
+
+        self.assertEqual(len(artists), 8)
 
 
 if __name__ == "__main__":

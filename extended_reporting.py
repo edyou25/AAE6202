@@ -29,6 +29,7 @@ from report_assets import (
 )
 from reporting import save_report_figures
 from run import simulate
+from visual import plot_aircraft_snapshot
 
 
 REPORT_DIR = LATEX_ASSETS_DIR
@@ -545,6 +546,15 @@ def _generate_appendix_figures(base_results) -> dict[str, str]:
         ax.plot(case_hist[:, 0], case_hist[:, 1], label=f"R = {int(radius/1000)} km")
         th = np.linspace(0.0, 2.0 * np.pi, 400)
         ax.plot(radius * np.cos(th), radius * np.sin(th), "--", linewidth=1.0, alpha=0.4)
+        plot_aircraft_snapshot(
+            ax,
+            x=float(case_hist[-1, 0]),
+            y=float(case_hist[-1, 1]),
+            psi=float(case_hist[-1, 2]),
+            scale=110.0,
+            alpha=0.88,
+            zorder=3.5,
+        )
     ax.set_aspect("equal", adjustable="box")
     ax.set_xlabel("x (m)")
     ax.set_ylabel("y (m)")

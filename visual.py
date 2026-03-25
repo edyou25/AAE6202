@@ -9,6 +9,8 @@ from typing import Any, Mapping
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FFMpegWriter, FuncAnimation, PillowWriter
+from matplotlib.axes import Axes
+from matplotlib.artist import Artist
 
 AIRCRAFT_PLOT_SCALE = 200.0
 
@@ -101,6 +103,84 @@ def body_to_world(points_body: np.ndarray, x: float, y: float, psi: float) -> np
     s = np.sin(psi)
     rot = np.array([[c, -s], [s, c]])
     return points_body @ rot.T + np.array([x, y])
+
+
+def plot_aircraft_snapshot(
+    ax: Axes,
+    x: float,
+    y: float,
+    psi: float,
+    *,
+    scale: float = AIRCRAFT_PLOT_SCALE,
+    alpha: float = 0.9,
+    zorder: float = 4.0,
+) -> list[Artist]:
+    """Overlay a static aircraft point cloud on an existing axis."""
+    cloud = build_aircraft_point_cloud(scale=scale)
+    part_specs = (
+        (cloud.fuselage, "#1f77b4", 9),
+        (cloud.wing, "#ff7f0e", 10),
+        (cloud.h_tail, "#2ca02c", 10),
+        (cloud.v_tail, "#d62728", 11),
+    )
+
+    artists: list[Artist] = []
+    for points_body, color, size in part_specs:
+        points_world = body_to_world(points_body, x=x, y=y, psi=psi)
+        artists.append(
+            ax.scatter(
+                points_world[:, 0],
+                points_world[:, 1],
+                s=size,
+                c=color,
+                alpha=alpha,
+                linewidths=0.0,
+                zorder=zorder,
+            )
+        )
+    return artists
+
+
+def plot_aircraft_snapshots(
+    ax: Axes,
+    hist: np.ndarray,
+    *,
+    indices: np.ndarray | list[int] | tuple[int, ...] | None = None,
+    n_snapshots: int = 3,
+    scale: float = AIRCRAFT_PLOT_SCALE,
+    alpha: float = 0.9,
+    zorder: float = 4.0,
+) -> list[Artist]:
+    """Overlay one or more aircraft snapshots along a trajectory history."""
+    hist = np.asarray(hist, dtype=float)
+    if hist.ndim != 2 or hist.shape[1] < 3:
+        raise ValueError("hist must have shape (N, >=3) with [x, y, psi, ...]")
+    if hist.shape[0] == 0:
+        return []
+
+    if indices is None:
+        if n_snapshots <= 1:
+            snap_ids = np.array([hist.shape[0] - 1], dtype=int)
+        else:
+            snap_ids = np.linspace(0, hist.shape[0] - 1, n_snapshots, dtype=int)
+    else:
+        snap_ids = np.asarray(indices, dtype=int).reshape(-1)
+
+    snap_ids = np.unique(np.clip(snap_ids, 0, hist.shape[0] - 1))
+    artists: list[Artist] = []
+    for idx in snap_ids:
+        artists.extend(
+            plot_aircraft_snapshot(
+                ax,
+                x=float(hist[idx, 0]),
+                y=float(hist[idx, 1]),
+                psi=float(hist[idx, 2]),
+                scale=scale,
+                alpha=alpha,
+                zorder=zorder,
+            )
+        )
+    return artists
 
 
 def _frame_indices(n: int, max_frames: int) -> np.ndarray:
@@ -198,10 +278,19 @@ def _build_animation(
         max_frames=max_frames,
     )
 
-    fig = plt.figure(figsize=(14.0, 8.5))
-    gs = fig.add_gridspec(1, 2, width_ratios=[3.9, 1.8], wspace=0.18)
-    ax = fig.add_subplot(gs[0, 0])
-    ax_info = fig.add_subplot(gs[0, 1])
+    fig = plt.figure(figsize=(15.5, 10.0))
+    gs = fig.add_gridspec(
+        3,
+        2,
+        width_ratios=[3.9, 1.85],
+        height_ratios=[0.95, 1.2, 1.55],
+        wspace=0.22,
+        hspace=0.14,
+    )
+    ax = fig.add_subplot(gs[:, 0])
+    ax_ctrl = fig.add_subplot(gs[0, 1])
+    ax_state = fig.add_subplot(gs[1, 1])
+    ax_est = fig.add_subplot(gs[2, 1])
 
     x_ref, y_ref = _reference_circle_points(ref)
     ax.plot(x_ref, y_ref, "k--", linewidth=1.2, alpha=0.7, label="reference")
@@ -301,18 +390,30 @@ def _build_animation(
 
     est_mode = str(_scalar_with_default(telemetry, "estimation_mode", "Bayes/MAP"))
 
-    ax_info.axis("off")
-    ax_info.set_title("Logs", loc="left", fontsize=11)
-    diag_text = ax_info.text(
-        0.01,
-        0.99,
-        "",
-        va="top",
-        ha="left",
-        fontsize=9,
-        family="monospace",
-        linespacing=1.35,
-    )
+    for info_ax, title_text in (
+        (ax_ctrl, "Control"),
+        (ax_state, "State / RK4"),
+        (ax_est, "Estimation"),
+    ):
+        info_ax.axis("off")
+        info_ax.set_title(title_text, loc="left", fontsize=11)
+
+    text_style = {
+        "va": "top",
+        "ha": "left",
+        "fontsize": 8.5,
+        "family": "monospace",
+        "linespacing": 1.22,
+        "bbox": {
+            "boxstyle": "round,pad=0.35",
+            "facecolor": "white",
+            "alpha": 0.92,
+            "edgecolor": "0.82",
+        },
+    }
+    ctrl_text = ax_ctrl.text(0.01, 0.98, "", transform=ax_ctrl.transAxes, **text_style)
+    state_text = ax_state.text(0.01, 0.98, "", transform=ax_state.transAxes, **text_style)
+    est_text = ax_est.text(0.01, 0.98, "", transform=ax_est.transAxes, **text_style)
 
     def _update(frame_no: int):
         idx = frame_ids[frame_no]
@@ -352,52 +453,69 @@ def _build_animation(
         est_meas_noise = est_meas_noise_series[idx]
         xh, yh, psih, phih, vh = est_state_hat[idx]
 
-        diag_text.set_text(
+        ctrl_text.set_text(
             "\n".join(
                 [
-                    "[Part1 - LQR / Control Errors]",
+                    "Tracking errors",
                     f"e_ct      : {e_ct:10.3f} m",
                     f"e_psi     : {e_psi:10.3f} deg",
                     f"e_phi     : {e_phi:10.3f} deg",
                     "",
-                    "[Part1 - Optimization]",
+                    "Optimization",
                     f"solve time: {solve_ms:10.3f} ms",
                     f"objective : {lqr_obj:10.6f}",
                     f"u* dphi   : {delta_phi_cmd:10.3f} deg",
                     f"u* phi_cmd: {phi_cmd:10.3f} deg",
                     f"u* thrust : {thrust:10.1f} N",
-                    f"weights   : Q=[{q_e_psi:.1f}, {q_e_phi:.1f}], R={r_u:.2f}",
-                    "",
-                    "[Part2 - ODE / RK4]",
+                    f"weights   : Q=[{q_e_psi:.1f}, {q_e_phi:.1f}]",
+                    f"            R={r_u:.2f}",
+                ]
+            )
+        )
+
+        state_text.set_text(
+            "\n".join(
+                [
                     f"method    : {rk_method}",
                     f"dt        : {rk_dt:10.4f} s",
-                    "state     :",
+                    "",
+                    "state",
                     f"  x       : {x:10.1f} m",
                     f"  y       : {y:10.1f} m",
                     f"  psi     : {np.rad2deg(psi):10.3f} deg",
                     f"  phi     : {np.rad2deg(phi):10.3f} deg",
                     f"  v       : {v:10.3f} m/s",
-                    "state_dot :",
+                    "",
+                    "state_dot",
                     f"  x_dot   : {x_dot:10.3f}",
                     f"  y_dot   : {y_dot:10.3f}",
                     f"  psi_dot : {psi_dot:10.6f}",
                     f"  phi_dot : {phi_dot:10.6f}",
                     f"  v_dot   : {v_dot:10.6f}",
-                    "",
-                    "[Part3 - Bayes/MAP Estimation]",
+                ]
+            )
+        )
+
+        est_text.set_text(
+            "\n".join(
+                [
                     f"mode      : {est_mode}",
-                    "prior=prediction, like=measurement, post=update",
+                    "prior=prediction",
+                    "like=measurement",
+                    "post=update",
                     f"innov norm: {est_innov:10.3f}",
                     f"noise ||v||: {est_meas_noise:10.3f}",
-                    f"sigma_meas: pos={meas_pos_std:.1f}m ang={meas_ang_std_deg:.2f}deg v={meas_v_std:.2f}",
-                    f"sigma_proc: pos={proc_pos_std:.1f}m ang={proc_ang_std_deg:.2f}deg v={proc_v_std:.2f}",
+                    f"sigma_meas: pos={meas_pos_std:.1f}m",
+                    f"            ang={meas_ang_std_deg:.2f}deg v={meas_v_std:.2f}",
+                    f"sigma_proc: pos={proc_pos_std:.1f}m",
+                    f"            ang={proc_ang_std_deg:.2f}deg v={proc_v_std:.2f}",
                     f"prior err : {est_prior_err:10.3f}",
                     f"post err  : {est_post_err:10.3f}",
                     f"MAP obj   : {est_map_obj:10.6f}",
                     f"upd time  : {est_update_ms:10.3f} ms",
                     f"tr(P-)    : {est_trace_prior:10.3f}",
                     f"tr(P+)    : {est_trace_post:10.3f}",
-                    "x_hat     :",
+                    "x_hat",
                     f"  x_hat   : {xh:10.1f} m",
                     f"  y_hat   : {yh:10.1f} m",
                     f"  psi_hat : {np.rad2deg(psih):10.3f} deg",
@@ -407,7 +525,17 @@ def _build_animation(
             )
         )
 
-        return traj_line, fuselage_sc, wing_sc, h_tail_sc, v_tail_sc, title, diag_text
+        return (
+            traj_line,
+            fuselage_sc,
+            wing_sc,
+            h_tail_sc,
+            v_tail_sc,
+            title,
+            ctrl_text,
+            state_text,
+            est_text,
+        )
 
     ani = FuncAnimation(
         fig,
@@ -472,5 +600,5 @@ def show_flight_animation(
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
         manager.set_window_title("B747 Flight Animation")
-    plt.show()
+    plt.show(block=True)
     return ani
