@@ -57,6 +57,15 @@ From a computational-methods perspective, the choice of RK4 is also aligned with
 
 The main contribution of this project is the integration of these three ideas into one consistent aerospace simulation workflow. The framework demonstrates how trajectory guidance, optimal regulation, nonlinear propagation, and stochastic state estimation can be combined in a concise course project.
 
+Figure \ref{fig:intro-overview} provides a compact visual overview of the integrated simulation environment used throughout this report.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.96\textwidth]{assets/overview.png}
+\caption{Interactive overview of the B747 control simulation, including the trajectory view and diagnostic telemetry panels.}
+\label{fig:intro-overview}
+\end{figure}
+
 \section{Problem Statement}
 
 \subsection{Objective}
@@ -82,6 +91,13 @@ The reference trajectory is a counterclockwise circle centered at \((0,0)\) with
 R=120{,}000\,\mathrm{m}.
 \]
 This baseline reference geometry is a simulation-design choice for the present coursework report rather than a published B747 airframe parameter.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.82\textwidth]{../assets/747.png}
+\caption{Representative Boeing 747 airframe image corresponding to the aircraft class modeled in this report.}
+\label{fig:b747-photo}
+\end{figure}
 
 \subsection{Performance Requirements}
 
@@ -228,7 +244,7 @@ These weights are not taken from a handbook table; they are the baseline tuning 
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.86\textwidth]{assets/controller_logic.png}
+\includegraphics[width=0.50\textwidth]{assets/controller_logic.png}
 \caption{Detailed control-logic flow from geometric error to saturated command output.}
 \label{fig:controller-logic}
 \end{figure}
@@ -300,29 +316,18 @@ AAE6202
 |-- README_en.md
 |-- assets
 |   |-- 747.png
-|   \-- anime.gif
+|   \-- ...
 |-- data
 |   |-- circle_flight_animation.gif
 |   |-- report_ext
 |   |   \-- report_metrics.json
 |   \-- test_outputs
-|       |-- reporting
-|       |   |-- part1_control.png
-|       |   |-- part2_dynamics.png
-|       |   |-- part3_estimation.png
-|       |   \-- simulation_overview.png
-|       \-- run
-|           \-- summary.png
 |-- docs
 |   |-- estimation.md
-|   |-- estimation_en.md
 |   |-- lqr.md
-|   |-- lqr_en.md
 |   |-- project_report.md
 |   |-- rk.md
-|   |-- rk_en.md
 |   |-- unit_test_report.md
-|   \-- unit_test_report_en.md
 |-- latex
 |   |-- abstract.tex
 |   |-- Academic.cls
@@ -334,28 +339,7 @@ AAE6202
 |   |   |-- controller_logic.dot
 |   |   |-- controller_logic.png
 |   |   |-- dt_sensitivity.png
-|   |   |-- error_phase_and_hist.png
-|   |   |-- estimation_covariance_detail.png
-|   |   |-- lqr_weight_sensitivity.png
-|   |   |-- module_dependency.dot
-|   |   |-- module_dependency.png
-|   |   |-- noise_sensitivity.png
-|   |   |-- part1_control.png
-|   |   |-- part2_dynamics.png
-|   |   |-- part3_estimation.png
-|   |   |-- polyu.pdf
-|   |   |-- radius_sensitivity.png
-|   |   |-- rk4_vs_euler_comparison_fixed.png
-|   |   |-- rk4_vs_euler_project.png
-|   |   |-- simulation_overview.png
-|   |   |-- state_estimate_comparison.png
-|   |   |-- system_architecture.dot
-|   |   |-- system_architecture.png
-|   |   |-- telemetry_pipeline.dot
-|   |   |-- telemetry_pipeline.png
-|   |   |-- timing_distribution.png
-|   |   |-- trajectory_family.png
-|   |   \-- transient_detail.png
+|   |   \-- ...
 |   |-- output
 |   |   \-- _main.pdf
 |   \-- template

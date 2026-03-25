@@ -118,10 +118,10 @@ def plot_aircraft_snapshot(
     """Overlay a static aircraft point cloud on an existing axis."""
     cloud = build_aircraft_point_cloud(scale=scale)
     part_specs = (
-        (cloud.fuselage, "#1f77b4", 9),
-        (cloud.wing, "#ff7f0e", 10),
-        (cloud.h_tail, "#2ca02c", 10),
-        (cloud.v_tail, "#d62728", 11),
+        (cloud.fuselage, "#1f77b4", 5),
+        (cloud.wing, "#ff7f0e", 5),
+        (cloud.h_tail, "#2ca02c", 5),
+        (cloud.v_tail, "#d62728", 5),
     )
 
     artists: list[Artist] = []
@@ -278,19 +278,20 @@ def _build_animation(
         max_frames=max_frames,
     )
 
-    fig = plt.figure(figsize=(15.5, 10.0))
+    fig = plt.figure(figsize=(16.5, 9.8))
     gs = fig.add_gridspec(
-        3,
         2,
-        width_ratios=[3.9, 1.85],
-        height_ratios=[0.95, 1.2, 1.55],
+        2,
+        width_ratios=[3.9, 2.35],
+        height_ratios=[1.0, 1.45],
         wspace=0.22,
         hspace=0.14,
     )
     ax = fig.add_subplot(gs[:, 0])
-    ax_ctrl = fig.add_subplot(gs[0, 1])
-    ax_state = fig.add_subplot(gs[1, 1])
-    ax_est = fig.add_subplot(gs[2, 1])
+    gs_top = gs[0, 1].subgridspec(1, 2, wspace=0.14)
+    ax_ctrl = fig.add_subplot(gs_top[0, 0])
+    ax_state = fig.add_subplot(gs_top[0, 1])
+    ax_est = fig.add_subplot(gs[1, 1])
 
     x_ref, y_ref = _reference_circle_points(ref)
     ax.plot(x_ref, y_ref, "k--", linewidth=1.2, alpha=0.7, label="reference")
@@ -401,9 +402,9 @@ def _build_animation(
     text_style = {
         "va": "top",
         "ha": "left",
-        "fontsize": 8.5,
+        "fontsize": 8.0,
         "family": "monospace",
-        "linespacing": 1.22,
+        "linespacing": 1.18,
         "bbox": {
             "boxstyle": "round,pad=0.35",
             "facecolor": "white",

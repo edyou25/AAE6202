@@ -551,7 +551,7 @@ def _generate_appendix_figures(base_results) -> dict[str, str]:
             x=float(case_hist[-1, 0]),
             y=float(case_hist[-1, 1]),
             psi=float(case_hist[-1, 2]),
-            scale=110.0,
+            scale=210.0,
             alpha=0.88,
             zorder=3.5,
         )

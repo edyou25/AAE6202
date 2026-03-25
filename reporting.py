@@ -109,7 +109,7 @@ def save_report_figures(
         axes2[0, 0],
         hist,
         indices=[0, hist.shape[0] // 2, hist.shape[0] - 1],
-        scale=140.0,
+        scale=240.0,
         alpha=0.9,
         zorder=3.5,
     )
