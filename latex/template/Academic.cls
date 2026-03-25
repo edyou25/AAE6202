@@ -26,7 +26,10 @@
 \RequirePackage{tikz}
 \RequirePackage{kantlipsum}
 \RequirePackage{lipsum}
-\RequirePackage{amsmath, amsfonts, amssymb, bm}
+\RequirePackage{amsmath, amsfonts}
+\let\Bbbk\relax
+\RequirePackage{amssymb}
+\RequirePackage{bm}
 \RequirePackage{setspace}
 \RequirePackage{url}
 \RequirePackage{graphicx}
@@ -115,7 +118,7 @@
 
 \author{
 \vspace{-2em}%
-\textbf{\MyAuthor$^{1}$}\\
+\textbf{\MyAuthor$^{1}$}\\[0.2em]
 \small{$^{1}$\MyDepartment}
 %\small{$^{2}$Supervisor,}
 %\small{$^{3}$Co-Supervisor} Can add more names...
