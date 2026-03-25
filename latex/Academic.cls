@@ -84,8 +84,8 @@
 
 %Word Count
 \newcommand{\quickwordcount}[1]{%
-  \immediate\write18{python wordcount.py "#1.tex" "#1-words.tex"}%
-  \IfFileExists{#1-words.tex}{\input{#1-words.tex}}{0 }%
+  \immediate\write18{python wordcount.py "#1.tex" "output/#1-words.tex"}%
+  \IfFileExists{output/#1-words.tex}{\input{output/#1-words.tex}}{0 }%
 }
 %\quickwordcount{main} - name of main.tex document (extension not required)
 %counts (text words, header words, caption words, #headers, #floats, #inlined formulae, #displayed formulae) 

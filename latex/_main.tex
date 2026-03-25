@@ -17,6 +17,17 @@
   coltitle=black
 }
 
+\captionsetup[table]{skip=4pt}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{10pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+
 \begin{document}
 %TC:ignore
 \myabstract{This project develops an integrated simulation framework for Boeing 747 circular-flight tracking in a 2D plane. The framework combines: (i) a linear quadratic regulator (LQR) for heading/bank inner-loop stabilization, (ii) a fourth-order Runge-Kutta (RK4) integrator for nonlinear aircraft dynamics propagation, and (iii) a Gaussian Bayes/MAP estimator for state estimation diagnostics under noisy measurements. Numerical experiments based on the project code show accurate path convergence and stable speed regulation, with final cross-track error close to zero and bounded bank angle throughout the simulation horizon. The report presents problem formulation, methodology, numerical results, and limitations.}
@@ -47,6 +58,13 @@ J=\sum_{k=0}^{\infty}\left(x_k^\top Q x_k + u_k^\top R u_k\right),
 \]
 with \(Q \succeq 0\) and \(R \succ 0\), leading to linear feedback \(u_k=-Kx_k\). In this project, LQR is used to stabilize heading and bank-angle errors around a circular-tracking reference.
 
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.96\textwidth]{assets/overview.png}
+\caption{Interactive overview of the B747 control simulation, including the trajectory view and diagnostic telemetry panels.}
+\label{fig:intro-overview}
+\end{figure}
+
 Aircraft motion remains nonlinear, so numerical integration is required. RK4 provides a practical balance between computational cost and accuracy and is commonly used for control-oriented flight simulation \supercite{hairer1993,butcher2016}. Compared with forward Euler, RK4 reduces truncation error significantly while remaining straightforward to implement.
 
 The third component is Gaussian Bayesian estimation. Under Gaussian assumptions, a Bayes update is equivalent to a weighted MAP problem, linking estimation with uncertainty interpretation \supercite{kalman1960,simon2006,welch2006}. In the current code, the estimator is used for diagnostics rather than closed-loop feedback, but it still provides insight into innovation magnitude, covariance contraction, and posterior consistency.
@@ -58,13 +76,6 @@ From a computational-methods perspective, the choice of RK4 is also aligned with
 The main contribution of this project is the integration of these three ideas into one consistent aerospace simulation workflow. The framework demonstrates how trajectory guidance, optimal regulation, nonlinear propagation, and stochastic state estimation can be combined in a concise course project.
 
 Figure \ref{fig:intro-overview} provides a compact visual overview of the integrated simulation environment used throughout this report.
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.96\textwidth]{assets/overview.png}
-\caption{Interactive overview of the B747 control simulation, including the trajectory view and diagnostic telemetry panels.}
-\label{fig:intro-overview}
-\end{figure}
 
 \section{Problem Statement}
 
@@ -94,7 +105,7 @@ This baseline reference geometry is a simulation-design choice for the present c
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.82\textwidth]{../assets/747.png}
+\includegraphics[width=0.42\textwidth]{../assets/747.png}
 \caption{Representative Boeing 747 airframe image corresponding to the aircraft class modeled in this report.}
 \label{fig:b747-photo}
 \end{figure}
@@ -334,13 +345,13 @@ AAE6202
 |   |-- references.bib
 |   |-- wordcount.py
 |   |-- _main.tex
-|   |-- _main-words.tex
 |   |-- assets
 |   |   |-- controller_logic.dot
 |   |   |-- controller_logic.png
 |   |   |-- dt_sensitivity.png
 |   |   \-- ...
 |   |-- output
+|   |   |-- _main-words.tex
 |   |   \-- _main.pdf
 |   \-- template
 |       |-- abstract.tex
@@ -360,7 +371,7 @@ AAE6202
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.95\textwidth]{assets/system_architecture.png}
+\includegraphics[width=0.99\textwidth,height=0.42\textheight,keepaspectratio]{assets/system_architecture.png}
 \caption{System-level architecture of the integrated controller--simulation--estimator workflow.}
 \label{fig:system-architecture}
 \end{figure}
@@ -369,16 +380,7 @@ Figure \ref{fig:system-architecture} emphasizes that the controller and estimato
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.82\textwidth]{assets/telemetry_pipeline.png}
-\caption{Telemetry pipeline from runtime signals to report metrics, plots, and diagnostics.}
-\label{fig:telemetry-pipeline}
-\end{figure}
-
-Figure \ref{fig:telemetry-pipeline} shows how runtime quantities are converted into engineering evidence. Controller solve time, tracking errors, state derivatives, and estimator statistics are first logged at every step, then reduced into scalar metrics and figures. This reporting-oriented architecture is important for the present assignment because it connects mathematical derivation with reproducible experimental validation.
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.90\textwidth]{assets/module_dependency.png}
+\includegraphics[width=0.50\textwidth]{assets/module_dependency.png}
 \caption{Dependency structure among the main Python modules and test files.}
 \label{fig:module-dependency}
 \end{figure}
@@ -410,7 +412,10 @@ Table \ref{tab:tracking-metrics} summarizes the main performance metrics.
 \centering
 \caption{Tracking and regulation performance metrics}
 \label{tab:tracking-metrics}
-\begin{tabular}{lr}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{0.96}
+\begin{tabular}{@{}lr@{}}
 \toprule
 Metric & Value \\
 \midrule
@@ -450,7 +455,10 @@ Table \ref{tab:timing-metrics} reports controller and estimator timing.
 \centering
 \caption{Computation time metrics}
 \label{tab:timing-metrics}
-\begin{tabular}{lr}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{0.96}
+\begin{tabular}{@{}lr@{}}
 \toprule
 Metric & Value \\
 \midrule
@@ -481,7 +489,10 @@ Table \ref{tab:estimation-metrics} summarizes the estimation statistics.
 \centering
 \caption{Estimator diagnostic metrics}
 \label{tab:estimation-metrics}
-\begin{tabular}{lr}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{0.96}
+\begin{tabular}{@{}lr@{}}
 \toprule
 Metric & Value \\
 \midrule

@@ -140,10 +140,10 @@ def _generate_system_graphs() -> tuple[dict[str, str], dict[str, str]]:
         system_dot,
         """
 digraph system_architecture {
-  rankdir=LR;
-  graph [pad="0.2", nodesep="0.45", ranksep="0.65"];
-  node [shape=box, style="rounded,filled", color="#24476b", fillcolor="#eaf2fb", fontname="Arial"];
-  edge [color="#355c7d", arrowsize=0.8, penwidth=1.4, fontname="Arial"];
+  rankdir=TB;
+  graph [pad="0.25", nodesep="0.55", ranksep="0.80", dpi="220"];
+  node [shape=box, style="rounded,filled", color="#24476b", fillcolor="#eaf2fb", fontname="Arial", fontsize=15, margin="0.14,0.08"];
+  edge [color="#355c7d", arrowsize=0.8, penwidth=1.4, fontname="Arial", fontsize=12];
 
   ref [label="Circle Reference\\n(center, radius, direction)"];
   state [label="True State\\n[x, y, psi, phi, v]"];
@@ -155,11 +155,14 @@ digraph system_architecture {
   logs [label="Telemetry Logger\\nerrors, timing, covariance"];
   vis [label="Plots / Animation / Report"];
 
+  { rank=same; ref; ctrl; dyn; integ; }
+  { rank=same; state; meas; est; logs; }
+
   ref -> ctrl;
-  state -> ctrl [label="feedback state"];
   ctrl -> dyn [label="phi_cmd, thrust"];
   dyn -> integ;
-  integ -> state;
+  integ -> state [label="propagated state"];
+  state -> ctrl [label="feedback state"];
   state -> meas;
   ctrl -> est [label="control input"];
   meas -> est [label="measurement z"];

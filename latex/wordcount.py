@@ -60,6 +60,7 @@ def main() -> int:
     tex_path = Path(sys.argv[1])
     out_path = Path(sys.argv[2])
     count = count_words(tex_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(f"{count} ", encoding="utf-8")
     return 0
 
