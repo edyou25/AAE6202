@@ -81,7 +81,7 @@ The reference trajectory is a counterclockwise circle centered at \((0,0)\) with
 \[
 R=120{,}000\,\mathrm{m}.
 \]
-This baseline reference geometry is a project design choice defined in the simulation configuration and reused throughout the nominal and sensitivity experiments \supercite{aae6202code2026}.
+This baseline reference geometry is a simulation-design choice for the present coursework report rather than a published B747 airframe parameter.
 
 \subsection{Performance Requirements}
 
@@ -89,7 +89,7 @@ The tracking system should satisfy the following requirements:
 \begin{enumerate}
 \item Reduce the signed cross-track error \(e_{ct}=R-r\) toward zero.
 \item Keep heading and bank-angle behavior smooth and stable.
-\item Maintain airspeed near \(v_{\mathrm{ref}}=210\,\mathrm{m/s}\), as specified in the baseline controller configuration \supercite{aae6202code2026}.
+\item Maintain airspeed near \(v_{\mathrm{ref}}=210\,\mathrm{m/s}\).
 \item Respect actuator and physics limits on bank angle and thrust.
 \end{enumerate}
 
@@ -99,7 +99,7 @@ The problem is simplified by the following assumptions:
 \begin{enumerate}
 \item Flight is modeled in a 2D plane.
 \item Aerodynamic drag is represented by a quasi-steady model.
-\item Control is updated discretely with \(\Delta t=0.05\,\mathrm{s}\), while the state dynamics are propagated continuously through numerical integration; this baseline step size follows both the project implementation and the supplementary RK4 study setup \supercite{aae6202code2026,aae6202methodology2026,aae6202b747script2026}.
+\item Control is updated discretely with \(\Delta t=0.05\,\mathrm{s}\), while the state dynamics are propagated continuously through numerical integration.
 \item Measurement noise is Gaussian, and the estimator is used only for diagnostics in the current version.
 \end{enumerate}
 
@@ -107,7 +107,7 @@ The problem is simplified by the following assumptions:
 
 \subsection{Parameter Provenance}
 
-To make the numerical setup auditable, the report distinguishes between two parameter classes. Representative planar B747 physical parameters are inherited from the supplementary modeling materials and then encoded in the implementation, while controller, estimator, and experiment settings are project-specific design choices recorded directly in the source code \supercite{aae6202methodology2026,aae6202b747script2026,aae6202code2026}. Table \ref{tab:param-provenance} summarizes the main numerical values used in the report.
+To make the numerical setup auditable, the report distinguishes between sourced airframe parameters and simulation assumptions. Published B747-400 geometry, mass, and engine data are taken from public aerospace references, while controller gains, estimator covariances, time-step choices, and closed-loop experiment settings are declared explicitly as modeling decisions for this coursework study. Table \ref{tab:param-provenance} summarizes the provenance of the main numerical values used in the report.
 
 \begin{table}[!htb]
 \centering
@@ -117,14 +117,15 @@ To make the numerical setup auditable, the report distinguishes between two para
 \toprule
 Parameter group & Values used in this report & Source of the values \\
 \midrule
-Aircraft physical model & \(m=333{,}400\,\mathrm{kg}\), \(S=541.2\,\mathrm{m}^2\), \(C_{D0}=0.02\), \(k=0.045\), \(\tau_\phi=2.0\,\mathrm{s}\) & Supplementary B747 planar-model materials, then mirrored in \texttt{dynamics.py} \supercite{aae6202methodology2026,aae6202b747script2026,aae6202code2026} \\
-State and input limits & \(|\phi|\le35^\circ\), \(T\in[0,1.1\times10^6]\,\mathrm{N}\), \(v\in[120,320]\,\mathrm{m/s}\) & Implementation safety and actuator bounds in \texttt{dynamics.py} for the adopted planar simulation case \supercite{aae6202code2026} \\
-Nominal mission setup & \(R=120{,}000\,\mathrm{m}\), \(v_{\mathrm{ref}}=210\,\mathrm{m/s}\), \(\Delta t=0.05\,\mathrm{s}\), \(t_{end}=800\,\mathrm{s}\) & Baseline experiment configuration in \texttt{run.py}; \(\Delta t=0.05\,\mathrm{s}\) is also consistent with the supplementary RK4 benchmark \supercite{aae6202code2026,aae6202methodology2026,aae6202b747script2026} \\
-Initial condition & \([R+2000,0,96^\circ,0^\circ,210]\) & Nominal closed-loop test case defined in \texttt{run.py} \supercite{aae6202code2026} \\
-Controller tuning & \(Q=\operatorname{diag}(30,10)\), \(R=[1]\), \(k_v=120000\), \(k_{ct}=1/3500\), heading-correction clip \(=\pm25^\circ\) & Project controller-design choices encoded in \texttt{controller.py} \supercite{aae6202code2026} \\
-Estimator covariances & Process std \((2,2,0.2^\circ,0.2^\circ,0.5)\), measurement std \((40,40,1^\circ,1^\circ,2)\), initial std \((50,50,2^\circ,2^\circ,3)\) & Diagnostic estimator settings defined in \texttt{estimation.py} \supercite{aae6202code2026} \\
-Sensitivity sweeps & \(\Delta t\in\{0.02,0.05,0.10,0.20\}\,\mathrm{s}\), \(R\in\{80,120,160,200\}\,\mathrm{km}\), noise scale \(\in\{0.5,1,2,4\}\), three LQR weight sets & Extended experiment protocol in \texttt{extended\_reporting.py} \supercite{aae6202code2026} \\
-RK4/Euler benchmark & \(\Delta t_{\mathrm{ref}}=0.05\,\mathrm{s}\), \(\Delta t_{\mathrm{test}}=0.5\,\mathrm{s}\), \(T_{\mathrm{sim}}=100\,\mathrm{s}\), \(\phi_{\mathrm{cmd}}=15^\circ+10^\circ\sin(2\pi t/20)\) & Supplementary benchmark script and methodology note \supercite{aae6202methodology2026,aae6202b747script2026} \\
+Aircraft physical model & \(m=396{,}890\,\mathrm{kg}\), \(S=510.97\,\mathrm{m}^2\), \(C_{D0}=0.022\), \(k=0.048\) & B747-400 maximum takeoff weight and installed-engine family data from Boeing; wing reference area from NASA's 747-400 PCA model; \(C_{D0}\) from MIT notes quoting Boeing drag data; \(k\) inferred from \(k=1/(\pi e AR)\) using sourced geometry and a Raymer-type span-efficiency estimate \supercite{boeing747400,burken1997,mahajan2014,raymer2018} \\
+Actuation and envelope assumptions & \(\tau_\phi=2.0\,\mathrm{s}\), \(|\phi|\le35^\circ\), \(v\in[120,320]\,\mathrm{m/s}\) & Simplified simulation assumptions introduced for numerical robustness and controller design; these are not claimed as manufacturer-issued 747 limits \\
+Installed thrust model & \(T\in[0,1.126\times10^6]\,\mathrm{N}\) & Based on four PW4062-class engines rated at about \(63{,}300\,\mathrm{lbf}\) each on 747-400 variants \supercite{boeing747400,pw400094guide} \\
+Nominal mission setup & \(R=120{,}000\,\mathrm{m}\), \(v_{\mathrm{ref}}=210\,\mathrm{m/s}\), \(\Delta t=0.05\,\mathrm{s}\), \(t_{end}=800\,\mathrm{s}\) & Coursework simulation choices for the baseline circular-tracking experiment \\
+Initial condition & \([R+2000,0,96^\circ,0^\circ,210]\) & Deliberate off-circle initial condition chosen to create a visible convergence transient \\
+Controller tuning & \(Q=\operatorname{diag}(30,10)\), \(R=[1]\), \(k_v=120000\), \(k_{ct}=1/3500\), heading-correction clip \(=\pm25^\circ\) & Project controller-design choices for the nominal case study \\
+Estimator covariances & Process std \((2,2,0.2^\circ,0.2^\circ,0.5)\), measurement std \((40,40,1^\circ,1^\circ,2)\), initial std \((50,50,2^\circ,2^\circ,3)\) & Project estimator settings for diagnostic uncertainty visualization \\
+Sensitivity sweeps & \(\Delta t\in\{0.02,0.05,0.10,0.20\}\,\mathrm{s}\), \(R\in\{80,120,160,200\}\,\mathrm{km}\), noise scale \(\in\{0.5,1,2,4\}\), three LQR weight sets & Experiment-design choices for robustness and sensitivity analysis \\
+RK4/Euler benchmark & \(\Delta t_{\mathrm{ref}}=0.05\,\mathrm{s}\), \(\Delta t_{\mathrm{test}}=0.5\,\mathrm{s}\), \(T_{\mathrm{sim}}=100\,\mathrm{s}\), \(\phi_{\mathrm{cmd}}=15^\circ+10^\circ\sin(2\pi t/20)\) & Independent numerical benchmark settings chosen to compare integrators under oscillatory bank input \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -148,17 +149,17 @@ D=\frac12 \rho v^2 S C_D,\qquad
 C_D=C_{D0}+k C_L^2,\qquad
 C_L=\frac{2mg}{\rho v^2 S \cos\phi}.
 \]
-This particular planar B747 parameterization is cross-checked against the supplementary methodology note and the independent benchmark script, then implemented in \texttt{dynamics.py} \supercite{aae6202methodology2026,aae6202b747script2026,aae6202code2026}.
+This particular planar B747 parameterization combines published 747-400 airframe data with standard aerodynamic approximations. The mass is set to the public 747-400 maximum takeoff weight, the wing area follows the NASA 747-400 PCA benchmark model, the parasitic drag coefficient uses the widely quoted \(C_{D0}\approx0.022\) for the Boeing 747, and the induced-drag factor is estimated from standard drag-polar relations using the sourced wing geometry \supercite{boeing747400,burken1997,mahajan2014,raymer2018}.
 
 Key parameters from \texttt{B747Params} are:
 \begin{enumerate}
-\item \(m=333{,}400\,\mathrm{kg}\), \(S=541.2\,\mathrm{m}^2\)
-\item \(C_{D0}=0.02\), \(k=0.045\)
+\item \(m=396{,}890\,\mathrm{kg}\), \(S=510.97\,\mathrm{m}^2\)
+\item \(C_{D0}=0.022\), \(k=0.048\)
 \item \(\tau_\phi=2.0\,\mathrm{s}\)
-\item \(|\phi|\le35^\circ\), \(T\in[0,\,1.1\times10^6]\,\mathrm{N}\)
+\item \(|\phi|\le35^\circ\), \(T\in[0,\,1.126\times10^6]\,\mathrm{N}\)
 \item \(v\in[120,\,320]\,\mathrm{m/s}\) with safety clipping
 \end{enumerate}
-The first three entries are inherited from the supplementary B747 model, whereas the saturation and clipping bounds are implementation choices adopted for numerical robustness in the current project \supercite{aae6202methodology2026,aae6202b747script2026,aae6202code2026}.
+The first two entries are directly sourced from public B747-400 references, the drag coefficients are sourced or inferred from standard aerodynamic references as described above, and the roll time constant plus clipping bounds remain simulation assumptions adopted for numerical robustness in the current project \supercite{boeing747400,burken1997,mahajan2014,raymer2018,pw400094guide}.
 
 \subsection{RK4 Discretization}
 
@@ -176,7 +177,7 @@ and updates the state by
 x_{k+1}=x_k+\frac{\Delta t}{6}(k_1+2k_2+2k_3+k_4).
 \]
 
-The supplementary reference materials in \texttt{addicted/B747system.py} and \texttt{addicted/Methodology.pdf} are consistent with this RK4 modeling idea: they use the same five-dimensional state \([x,y,\psi,\phi,v]\), the same drag construction based on \(C_L\) and \(C_D\), and a direct comparison between RK4 and forward Euler under identical control inputs \supercite{aae6202methodology2026,aae6202b747script2026}. After cross-checking those materials, the present project keeps the standard RK4 weighting \(1,2,2,1\) in the final implementation and uses the comparison only as a verification study rather than as the main simulation engine \supercite{aae6202code2026}.
+The supplementary benchmark materials are consistent with this RK4 modeling idea in the sense that they use the same five-dimensional state \([x,y,\psi,\phi,v]\), the same drag construction based on \(C_L\) and \(C_D\), and a direct comparison between RK4 and forward Euler under identical control inputs. In the final report, however, the cited physical parameter values are taken from public aerospace references rather than from local code files.
 
 \subsection{Circular Tracking Controller}
 
@@ -217,13 +218,13 @@ The speed loop uses
 T = D_{\mathrm{guess}} + k_v(v_{\mathrm{ref}}-v),
 \]
 followed by clipping to thrust bounds.
-The feedforward-turn formula comes from coordinated-turn kinematics, while the numerical values \(k_v=120000\), \(k_{ct}=1/3500\), and the \(\pm25^\circ\) heading-correction clip are baseline controller-tuning choices defined in \texttt{controller.py} \supercite{astrom2008,aae6202code2026}.
+The feedforward-turn formula comes from coordinated-turn kinematics, while the numerical values \(k_v=120000\), \(k_{ct}=1/3500\), and the \(\pm25^\circ\) heading-correction clip are baseline controller-tuning choices for this case study \supercite{astrom2008}.
 
 Default LQR weighting in \texttt{ControlConfig} is
 \[
 Q=\operatorname{diag}(30,\,10),\qquad R=[1].
 \]
-These weights are not taken from a handbook table; they are the baseline tuning used in the implementation and the later sensitivity study \supercite{aae6202code2026}.
+These weights are not taken from a handbook table; they are the baseline tuning adopted for the nominal simulation and the later sensitivity study.
 
 \subsection{Gaussian Bayes/MAP Estimator}
 
@@ -257,7 +258,7 @@ The noise settings are:
 \item Measurement standard deviation: \((40,\,40,\,1^\circ,\,1^\circ,\,2)\)
 \item Initial standard deviation: \((50,\,50,\,2^\circ,\,2^\circ,\,3)\)
 \end{enumerate}
-These covariance surrogates are project-level estimator settings encoded in \texttt{estimation.py} for diagnostic visualization rather than identified from flight-test data \supercite{aae6202code2026}.
+These covariance surrogates are project-level estimator settings for diagnostic visualization rather than quantities identified from flight-test data.
 
 \subsection{Simulation Workflow}
 
@@ -276,7 +277,7 @@ From a software-engineering perspective, the project is organized as a compact c
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.95\textwidth]{../data/report_ext/system_architecture.png}
+\includegraphics[width=0.95\textwidth]{assets/system_architecture.png}
 \caption{System-level architecture of the integrated controller--simulation--estimator workflow.}
 \label{fig:system-architecture}
 \end{figure}
@@ -285,7 +286,7 @@ Figure \ref{fig:system-architecture} emphasizes that the controller and estimato
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.82\textwidth]{../data/report_ext/telemetry_pipeline.png}
+\includegraphics[width=0.82\textwidth]{assets/telemetry_pipeline.png}
 \caption{Telemetry pipeline from runtime signals to report metrics, plots, and diagnostics.}
 \label{fig:telemetry-pipeline}
 \end{figure}
@@ -298,16 +299,16 @@ Figure \ref{fig:telemetry-pipeline} shows how runtime quantities are converted i
 
 The default experiment defined in \texttt{run.py} uses:
 \begin{enumerate}
-\item Time horizon \(t_{end}=800\,\mathrm{s}\), time step \(\Delta t=0.05\,\mathrm{s}\), and 16{,}000 simulation steps \supercite{aae6202code2026}.
+\item Time horizon \(t_{end}=800\,\mathrm{s}\), time step \(\Delta t=0.05\,\mathrm{s}\), and 16{,}000 simulation steps.
 \item Initial state
 \[
 [x_0,y_0,\psi_0,\phi_0,v_0]=[R+2000,\,0,\,96^\circ,\,0^\circ,\,210].
 \]
-This places the aircraft outside the target circle with a heading offset and matches the nominal case encoded in \texttt{run.py} \supercite{aae6202code2026}.
-\item Random seed 6202 for measurement noise \supercite{aae6202code2026}.
+This places the aircraft outside the target circle with a heading offset.
+\item Random seed 6202 for measurement noise.
 \end{enumerate}
 
-Generated artifacts include \texttt{data/circle\_flight\_result.png} and \texttt{data/circle\_flight\_animation.gif}.
+Generated artifacts include \texttt{data/circle\_flight\_animation.gif}, while every manuscript figure and Graphviz source file is exported to \texttt{latex/assets/} for direct inclusion in the final report.
 
 \subsection{Tracking and Regulation Performance}
 
@@ -391,7 +392,7 @@ The generated figures and animation show that the aircraft starts outside the re
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.9\textwidth]{../data/report/simulation_overview.png}
+\includegraphics[width=0.9\textwidth]{assets/simulation_overview.png}
 \caption{Overview of circular tracking performance generated from the project code.}
 \label{fig:overview}
 \end{figure}
@@ -417,7 +418,7 @@ The most important dynamic changes occur during the early convergence phase, whe
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.96\textwidth]{../data/report_ext/transient_detail.png}
+\includegraphics[width=0.96\textwidth]{assets/transient_detail.png}
 \caption{Detailed transient response during the first 120 seconds of the baseline simulation.}
 \label{fig:transient-detail}
 \end{figure}
@@ -430,14 +431,14 @@ The next question is whether the estimator captures the underlying state evoluti
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.93\textwidth]{../data/report_ext/state_estimate_comparison.png}
+\includegraphics[width=0.93\textwidth]{assets/state_estimate_comparison.png}
 \caption{True state and posterior estimate for all five state components.}
 \label{fig:state-estimate-comparison}
 \end{figure}
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.93\textwidth]{../data/report_ext/error_phase_and_hist.png}
+\includegraphics[width=0.93\textwidth]{assets/error_phase_and_hist.png}
 \caption{Error phase portrait and bank-angle distributions in the baseline case.}
 \label{fig:error-phase-hist}
 \end{figure}
@@ -446,11 +447,11 @@ The true and estimated state histories remain close throughout the simulation, e
 
 \subsection{Sensitivity to Integration Time Step}
 
-Because the simulation is based on numerical propagation, time-step sensitivity is an important numerical question. Figure \ref{fig:dt-sensitivity} compares closed-loop metrics for \(\Delta t=0.02, 0.05, 0.10,\) and \(0.20\,\mathrm{s}\), using otherwise identical settings defined in the extended experiment script \supercite{aae6202code2026}.
+Because the simulation is based on numerical propagation, time-step sensitivity is an important numerical question. Figure \ref{fig:dt-sensitivity} compares closed-loop metrics for \(\Delta t=0.02, 0.05, 0.10,\) and \(0.20\,\mathrm{s}\), using otherwise identical settings.
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.92\textwidth]{../data/report_ext/dt_sensitivity.png}
+\includegraphics[width=0.92\textwidth]{assets/dt_sensitivity.png}
 \caption{Sensitivity of tracking and regulation metrics to integration time step.}
 \label{fig:dt-sensitivity}
 \end{figure}
@@ -475,11 +476,11 @@ Table \ref{tab:dt-sensitivity} and Figure \ref{fig:dt-sensitivity} show that the
 
 \subsection{Sensitivity to Reference-Circle Radius}
 
-Reference geometry also influences control effort, because smaller circles require larger coordinated-turn bank angles. Figure \ref{fig:radius-sensitivity} compares four radii between \(80{,}000\,\mathrm{m}\) and \(200{,}000\,\mathrm{m}\), again using the sweep values specified in \texttt{extended\_reporting.py} \supercite{aae6202code2026}.
+Reference geometry also influences control effort, because smaller circles require larger coordinated-turn bank angles. Figure \ref{fig:radius-sensitivity} compares four radii between \(80{,}000\,\mathrm{m}\) and \(200{,}000\,\mathrm{m}\).
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.92\textwidth]{../data/report_ext/radius_sensitivity.png}
+\includegraphics[width=0.92\textwidth]{assets/radius_sensitivity.png}
 \caption{Sensitivity of performance and commanded curvature to reference-circle radius.}
 \label{fig:radius-sensitivity}
 \end{figure}
@@ -488,11 +489,11 @@ As the reference radius increases, the feedforward bank angle decreases monotoni
 
 \subsection{Sensitivity to Measurement Noise}
 
-The estimator is expected to be more sensitive to sensor quality than the controller, because the current controller still uses the true state. Figure \ref{fig:noise-sensitivity} verifies this intuition by scaling the measurement-noise covariance over a factor range from \(0.5\) to \(4.0\), exactly as prescribed in the extended experiment script \supercite{aae6202code2026}.
+The estimator is expected to be more sensitive to sensor quality than the controller, because the current controller still uses the true state. Figure \ref{fig:noise-sensitivity} verifies this intuition by scaling the measurement-noise covariance over a factor range from \(0.5\) to \(4.0\).
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.92\textwidth]{../data/report_ext/noise_sensitivity.png}
+\includegraphics[width=0.92\textwidth]{assets/noise_sensitivity.png}
 \caption{Estimator sensitivity to measurement-noise scaling.}
 \label{fig:noise-sensitivity}
 \end{figure}
@@ -501,11 +502,11 @@ The tracking metrics remain effectively unchanged in this sweep, which is expect
 
 \subsection{Sensitivity to LQR Weight Selection}
 
-To study controller tuning, three LQR weight sets were tested: conservative \((Q=\mathrm{diag}(20,8),R=2)\), baseline \((Q=\mathrm{diag}(30,10),R=1)\), and aggressive \((Q=\mathrm{diag}(60,15),R=0.5)\). These are project-defined comparison cases in \texttt{extended\_reporting.py} rather than externally prescribed textbook settings \supercite{aae6202code2026}. Figure \ref{fig:lqr-weight-sensitivity} summarizes the results.
+To study controller tuning, three LQR weight sets were tested: conservative \((Q=\mathrm{diag}(20,8),R=2)\), baseline \((Q=\mathrm{diag}(30,10),R=1)\), and aggressive \((Q=\mathrm{diag}(60,15),R=0.5)\). These are project-defined comparison cases rather than externally prescribed textbook settings. Figure \ref{fig:lqr-weight-sensitivity} summarizes the results.
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.92\textwidth]{../data/report_ext/lqr_weight_sensitivity.png}
+\includegraphics[width=0.92\textwidth]{assets/lqr_weight_sensitivity.png}
 \caption{Effect of LQR weight selection on tracking quality and actuator usage.}
 \label{fig:lqr-weight-sensitivity}
 \end{figure}
@@ -514,11 +515,11 @@ The aggressive design improves tracking metrics, reducing cross-track RMSE from 
 
 \subsection{Recreated RK4-versus-Euler Benchmark}
 
-Finally, the supplementary RK4/Euler benchmark was recreated using the project dynamics in order to ensure methodological consistency. The recreated case retains the supplementary benchmark settings \(\Delta t_{\mathrm{ref}}=0.05\,\mathrm{s}\), \(\Delta t_{\mathrm{test}}=0.5\,\mathrm{s}\), \(T_{\mathrm{sim}}=100\,\mathrm{s}\), and \(\phi_{\mathrm{cmd}}=15^\circ+10^\circ\sin(2\pi t/20)\) \supercite{aae6202methodology2026,aae6202b747script2026}. Figure \ref{fig:rk4-vs-euler-project} shows the resulting comparison.
+Finally, the supplementary RK4/Euler benchmark was recreated using the project dynamics in order to ensure methodological consistency. The recreated case retains the benchmark settings \(\Delta t_{\mathrm{ref}}=0.05\,\mathrm{s}\), \(\Delta t_{\mathrm{test}}=0.5\,\mathrm{s}\), \(T_{\mathrm{sim}}=100\,\mathrm{s}\), and \(\phi_{\mathrm{cmd}}=15^\circ+10^\circ\sin(2\pi t/20)\). Figure \ref{fig:rk4-vs-euler-project} shows the resulting comparison.
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.93\textwidth]{../data/report_ext/rk4_vs_euler_project.png}
+\includegraphics[width=0.93\textwidth]{assets/rk4_vs_euler_project.png}
 \caption{Recreated RK4-versus-Euler benchmark using the project dynamics implementation.}
 \label{fig:rk4-vs-euler-project}
 \end{figure}
@@ -555,7 +556,7 @@ This appendix collects supplementary figures that support reproducibility, softw
 
 For reproducibility and readability, a curated project tree is listed below in a code-block style based on the Windows \texttt{tree /F /A} output. Only the most important source files, reports, tests, and generated artifacts are retained, while cache folders and temporary directories are omitted.
 
-The file system is organized into six functional parts. The root directory contains the main simulation modules, including controller design, nonlinear dynamics, estimation, reporting, visualization, and the executable entry point. The \texttt{tests/} folder stores unit tests for each functional module. The \texttt{docs/} folder contains the written technical notes and report drafts in both Chinese and English. The \texttt{data/} folder stores generated figures, animations, metrics, and test outputs. The \texttt{latex/} folder contains the final report source, bibliography, class file, and compiled PDF artifacts. Finally, \texttt{assets/} and \texttt{addicted/} provide supporting media and supplementary reference materials used to validate the modeling and RK4-versus-Euler comparison.
+The file system is organized into six functional parts. The root directory contains the main simulation modules, including controller design, nonlinear dynamics, estimation, reporting, visualization, and the executable entry point. The \texttt{tests/} folder stores unit tests for each functional module. The \texttt{docs/} folder contains the written technical notes and report drafts in both Chinese and English. The \texttt{data/} folder stores runtime animations, summary metrics, and test outputs. The \texttt{latex/} folder contains the final report source, bibliography, class file, compiled PDF artifacts, and a dedicated \texttt{assets/} directory that centralizes every Python-generated figure and Graphviz source referenced by the manuscript. Finally, \texttt{assets/} and \texttt{addicted/} provide supporting media and supplementary reference materials used to validate the modeling and RK4-versus-Euler comparison.
 
 \begin{projecttreebox}
 AAE6202
@@ -569,33 +570,13 @@ AAE6202
 |-- env.yaml
 |-- README.md
 |-- README_en.md
-|-- rk4_vs_euler_comparison_fixed.png
 |-- assets
 |   |-- 747.png
 |   \-- anime.gif
 |-- data
 |   |-- circle_flight_animation.gif
-|   |-- report
-|   |   |-- part1_control.png
-|   |   |-- part2_dynamics.png
-|   |   |-- part3_estimation.png
-|   |   \-- simulation_overview.png
 |   |-- report_ext
-|   |   |-- controller_logic.png
-|   |   |-- dt_sensitivity.png
-|   |   |-- estimation_covariance_detail.png
-|   |   |-- lqr_weight_sensitivity.png
-|   |   |-- module_dependency.png
-|   |   |-- noise_sensitivity.png
-|   |   |-- radius_sensitivity.png
-|   |   |-- report_metrics.json
-|   |   |-- rk4_vs_euler_project.png
-|   |   |-- state_estimate_comparison.png
-|   |   |-- system_architecture.png
-|   |   |-- telemetry_pipeline.png
-|   |   |-- timing_distribution.png
-|   |   |-- trajectory_family.png
-|   |   \-- transient_detail.png
+|   |   \-- report_metrics.json
 |   \-- test_outputs
 |       |-- reporting
 |       |   |-- part1_control.png
@@ -622,7 +603,31 @@ AAE6202
 |   |-- _main.tex
 |   |-- _main-words.tex
 |   |-- assets
-|   |   \-- polyu.pdf
+|   |   |-- controller_logic.dot
+|   |   |-- controller_logic.png
+|   |   |-- dt_sensitivity.png
+|   |   |-- error_phase_and_hist.png
+|   |   |-- estimation_covariance_detail.png
+|   |   |-- lqr_weight_sensitivity.png
+|   |   |-- module_dependency.dot
+|   |   |-- module_dependency.png
+|   |   |-- noise_sensitivity.png
+|   |   |-- part1_control.png
+|   |   |-- part2_dynamics.png
+|   |   |-- part3_estimation.png
+|   |   |-- polyu.pdf
+|   |   |-- radius_sensitivity.png
+|   |   |-- rk4_vs_euler_comparison_fixed.png
+|   |   |-- rk4_vs_euler_project.png
+|   |   |-- simulation_overview.png
+|   |   |-- state_estimate_comparison.png
+|   |   |-- system_architecture.dot
+|   |   |-- system_architecture.png
+|   |   |-- telemetry_pipeline.dot
+|   |   |-- telemetry_pipeline.png
+|   |   |-- timing_distribution.png
+|   |   |-- trajectory_family.png
+|   |   \-- transient_detail.png
 |   |-- output
 |   |   \-- _main.pdf
 |   \-- template
@@ -645,7 +650,7 @@ AAE6202
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.90\textwidth]{../data/report_ext/module_dependency.png}
+\includegraphics[width=0.90\textwidth]{assets/module_dependency.png}
 \caption{Dependency structure among the main Python modules and test files.}
 \label{fig:module-dependency}
 \end{figure}
@@ -656,7 +661,7 @@ Figure \ref{fig:module-dependency} shows that the project is structured around a
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.86\textwidth]{../data/report_ext/controller_logic.png}
+\includegraphics[width=0.86\textwidth]{assets/controller_logic.png}
 \caption{Detailed control-logic flow from geometric error to saturated command output.}
 \label{fig:controller-logic}
 \end{figure}
@@ -667,7 +672,7 @@ The control-logic diagram clarifies the layered design philosophy used throughou
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.93\textwidth]{../data/report_ext/trajectory_family.png}
+\includegraphics[width=0.93\textwidth]{assets/trajectory_family.png}
 \caption{Family of closed-loop trajectories under different reference-circle radii.}
 \label{fig:trajectory-family}
 \end{figure}
@@ -678,7 +683,7 @@ This trajectory family complements the radius-sensitivity metrics in the main te
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.93\textwidth]{../data/report_ext/timing_distribution.png}
+\includegraphics[width=0.93\textwidth]{assets/timing_distribution.png}
 \caption{Distribution of controller and estimator computation times.}
 \label{fig:timing-distribution}
 \end{figure}
@@ -689,7 +694,7 @@ The timing-distribution figure supplements the mean and percentile values report
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.93\textwidth]{../data/report_ext/estimation_covariance_detail.png}
+\includegraphics[width=0.93\textwidth]{assets/estimation_covariance_detail.png}
 \caption{Detailed estimation diagnostics: covariance traces, MAP objective, and innovation history.}
 \label{fig:estimation-covariance-detail}
 \end{figure}
@@ -700,21 +705,21 @@ This figure provides a closer look at the stochastic side of the project. The di
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.93\textwidth]{../data/report/part1_control.png}
+\includegraphics[width=0.93\textwidth]{assets/part1_control.png}
 \caption{Part 1 figure: control errors, bank tracking, and control effort.}
 \label{fig:appendix-part1}
 \end{figure}
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.93\textwidth]{../data/report/part2_dynamics.png}
+\includegraphics[width=0.93\textwidth]{assets/part2_dynamics.png}
 \caption{Part 2 figure: dynamics propagation, rates, and speed behavior.}
 \label{fig:appendix-part2}
 \end{figure}
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=0.93\textwidth]{../data/report/part3_estimation.png}
+\includegraphics[width=0.93\textwidth]{assets/part3_estimation.png}
 \caption{Part 3 figure: estimation errors, innovation, covariance, and true-versus-estimated position.}
 \label{fig:appendix-part3}
 \end{figure}

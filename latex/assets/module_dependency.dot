@@ -1,0 +1,33 @@
+digraph module_dependency {
+  rankdir=LR;
+  graph [pad="0.2", nodesep="0.45", ranksep="0.65"];
+  node [shape=box, style="rounded,filled", color="#3f5d4f", fillcolor="#eef7f0", fontname="Arial"];
+  edge [color="#4f6f52", arrowsize=0.8, penwidth=1.4, fontname="Arial"];
+
+  run [label="run.py"];
+  controller [label="controller.py"];
+  dynamics [label="dynamics.py"];
+  estimation [label="estimation.py"];
+  visual [label="visual.py"];
+  reporting [label="reporting.py"];
+  ext [label="extended_reporting.py"];
+  tests [label="tests/*"];
+
+  run -> controller;
+  run -> dynamics;
+  run -> estimation;
+  run -> visual;
+  reporting -> run;
+  ext -> run;
+  ext -> controller;
+  ext -> dynamics;
+  ext -> estimation;
+  tests -> controller;
+  tests -> dynamics;
+  tests -> estimation;
+  tests -> visual;
+  tests -> reporting;
+  tests -> run;
+  controller -> dynamics;
+  estimation -> dynamics;
+}

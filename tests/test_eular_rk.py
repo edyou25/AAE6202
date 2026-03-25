@@ -1,4 +1,6 @@
 # RK4
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -181,7 +183,9 @@ plt.legend()
 plt.grid(True, alpha=0.3, which='both')
 
 plt.tight_layout()
-plt.savefig('rk4_vs_euler_comparison_fixed.png', dpi=300, bbox_inches='tight')
+out_path = Path("latex") / "assets" / "rk4_vs_euler_comparison_fixed.png"
+out_path.parent.mkdir(parents=True, exist_ok=True)
+plt.savefig(out_path, dpi=300, bbox_inches='tight')
 
 
 print(f"\n在t={T_sim}s时刻:")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,12 +18,22 @@ import numpy as np
 from controller import CircleRef, ControlConfig
 from dynamics import B747Params, b747_dynamics, rk4_step
 from estimation import EstimationConfig
+from report_assets import (
+    LATEX_ASSETS_DIR,
+    LEGACY_REPORT_EXT_DIR,
+    copy_asset,
+    ensure_dir,
+    paths_match,
+    save_figure,
+    write_text_asset,
+)
+from reporting import save_report_figures
 from run import simulate
 
 
-ROOT = Path(__file__).resolve().parent
-REPORT_DIR = ROOT / "data" / "report_ext"
-DOT_EXE = Path(r"C:\Program Files\Graphviz\bin\dot.exe")
+REPORT_DIR = LATEX_ASSETS_DIR
+METRICS_DIR = LEGACY_REPORT_EXT_DIR
+DOT_EXE = Path(shutil.which("dot") or r"C:\Program Files\Graphviz\bin\dot.exe")
 
 
 @dataclass(frozen=True)
@@ -38,16 +49,31 @@ class CaseMetrics:
     posterior_improve_ratio: float
 
 
-def _ensure_dir(path: Path) -> None:
-    path.mkdir(parents=True, exist_ok=True)
-
-
 def _save(fig: plt.Figure, path: Path) -> str:
-    _ensure_dir(path.parent)
-    fig.tight_layout()
-    fig.savefig(path, dpi=160, bbox_inches="tight")
-    plt.close(fig)
-    return str(path)
+    mirror_paths: tuple[Path, ...] = ()
+    if paths_match(path.parent, REPORT_DIR):
+        mirror_paths = (LEGACY_REPORT_EXT_DIR / path.name,)
+    return save_figure(fig, path, mirror_paths=mirror_paths, dpi=160)
+
+
+def _write_report_text(path: Path, content: str) -> str:
+    mirror_paths: tuple[Path, ...] = ()
+    if paths_match(path.parent, REPORT_DIR):
+        mirror_paths = (LEGACY_REPORT_EXT_DIR / path.name,)
+    return write_text_asset(content, path, mirror_paths=mirror_paths)
+
+
+def _render_graphviz(dot_path: Path, png_path: Path) -> str:
+    if not DOT_EXE.exists():
+        raise FileNotFoundError(f"Graphviz dot executable not found: {DOT_EXE}")
+    subprocess.run(
+        [str(DOT_EXE), "-Tpng", str(dot_path), "-o", str(png_path)],
+        check=True,
+    )
+    mirror_paths: tuple[Path, ...] = ()
+    if paths_match(png_path.parent, REPORT_DIR):
+        mirror_paths = (LEGACY_REPORT_EXT_DIR / png_path.name,)
+    return copy_asset(png_path, png_path, mirror_paths=mirror_paths)
 
 
 def _settling_time(time: np.ndarray, signal: np.ndarray, threshold: float) -> float:
@@ -100,15 +126,17 @@ def _run_case(
     )
 
 
-def _generate_system_graphs() -> dict[str, str]:
-    _ensure_dir(REPORT_DIR)
+def _generate_system_graphs() -> tuple[dict[str, str], dict[str, str]]:
+    ensure_dir(REPORT_DIR)
     paths: dict[str, str] = {}
+    dot_paths: dict[str, str] = {}
     system_dot = REPORT_DIR / "system_architecture.dot"
     telemetry_dot = REPORT_DIR / "telemetry_pipeline.dot"
     module_dot = REPORT_DIR / "module_dependency.dot"
     control_dot = REPORT_DIR / "controller_logic.dot"
 
-    system_dot.write_text(
+    _write_report_text(
+        system_dot,
         """
 digraph system_architecture {
   rankdir=LR;
@@ -140,10 +168,10 @@ digraph system_architecture {
   logs -> vis;
 }
 """.strip(),
-        encoding="utf-8",
     )
 
-    telemetry_dot.write_text(
+    _write_report_text(
+        telemetry_dot,
         """
 digraph telemetry_pipeline {
   rankdir=TB;
@@ -180,10 +208,10 @@ digraph telemetry_pipeline {
   p2 -> p4;
 }
 """.strip(),
-        encoding="utf-8",
     )
 
-    module_dot.write_text(
+    _write_report_text(
+        module_dot,
         """
 digraph module_dependency {
   rankdir=LR;
@@ -219,10 +247,10 @@ digraph module_dependency {
   estimation -> dynamics;
 }
 """.strip(),
-        encoding="utf-8",
     )
 
-    control_dot.write_text(
+    _write_report_text(
+        control_dot,
         """
 digraph controller_logic {
   rankdir=TB;
@@ -247,23 +275,20 @@ digraph controller_logic {
   s0 -> s8 -> s9;
 }
 """.strip(),
-        encoding="utf-8",
     )
 
-    for dot_path, png_name in (
-        (system_dot, "system_architecture.png"),
-        (telemetry_dot, "telemetry_pipeline.png"),
-        (module_dot, "module_dependency.png"),
-        (control_dot, "controller_logic.png"),
+    for stem, dot_path, png_name in (
+        ("system_architecture", system_dot, "system_architecture.png"),
+        ("telemetry_pipeline", telemetry_dot, "telemetry_pipeline.png"),
+        ("module_dependency", module_dot, "module_dependency.png"),
+        ("controller_logic", control_dot, "controller_logic.png"),
     ):
         png_path = REPORT_DIR / png_name
-        subprocess.run(
-            [str(DOT_EXE), "-Tpng", str(dot_path), "-o", str(png_path)],
-            check=True,
-        )
-        paths[png_name.removesuffix(".png")] = str(png_path)
+        _render_graphviz(dot_path, png_path)
+        paths[stem] = str(png_path)
+        dot_paths[stem] = str(dot_path)
 
-    return paths
+    return paths, dot_paths
 
 
 def _generate_transient_and_estimation_figures(base_results) -> dict[str, str]:
@@ -565,7 +590,7 @@ def _generate_appendix_figures(base_results) -> dict[str, str]:
 
     # Reuse baseline report figures in the same folder for appendix references
     for name in ("part1_control", "part2_dynamics", "part3_estimation"):
-        src = ROOT / "data" / "report" / f"{name}.png"
+        src = REPORT_DIR / f"{name}.png"
         if src.exists():
             paths[name] = str(src)
     return paths
@@ -650,13 +675,16 @@ def _generate_rk4_vs_euler_figure() -> tuple[str, dict]:
 
 
 def generate_extended_report_assets() -> dict:
-    _ensure_dir(REPORT_DIR)
+    ensure_dir(REPORT_DIR)
+    ensure_dir(METRICS_DIR)
+    base_report_paths = save_report_figures(output_dir=REPORT_DIR)
     base_results = _run_case(t_end=800.0, seed=6202)
     time, hist, e_ct, e_psi_deg, phi_cmd_deg, _, telemetry = base_results
     base_metrics = _compute_metrics(time, hist, e_ct, e_psi_deg, phi_cmd_deg, telemetry)
 
-    artifact_paths = {}
-    artifact_paths.update(_generate_system_graphs())
+    artifact_paths = dict(base_report_paths)
+    graph_paths, graph_source_paths = _generate_system_graphs()
+    artifact_paths.update(graph_paths)
     artifact_paths.update(_generate_transient_and_estimation_figures(base_results))
     sweep_paths, sweep_metrics = _generate_sweep_figures()
     artifact_paths.update(sweep_paths)
@@ -669,8 +697,9 @@ def generate_extended_report_assets() -> dict:
         "sweeps": sweep_metrics,
         "rk4_vs_euler": rk4_euler_metrics,
         "artifact_paths": artifact_paths,
+        "graph_source_paths": graph_source_paths,
     }
-    (REPORT_DIR / "report_metrics.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    (METRICS_DIR / "report_metrics.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     return summary
 
 

@@ -1,0 +1,29 @@
+digraph system_architecture {
+  rankdir=LR;
+  graph [pad="0.2", nodesep="0.45", ranksep="0.65"];
+  node [shape=box, style="rounded,filled", color="#24476b", fillcolor="#eaf2fb", fontname="Arial"];
+  edge [color="#355c7d", arrowsize=0.8, penwidth=1.4, fontname="Arial"];
+
+  ref [label="Circle Reference\n(center, radius, direction)"];
+  state [label="True State\n[x, y, psi, phi, v]"];
+  ctrl [label="Controller\nouter-loop guidance\n+ inner-loop LQR\n+ speed hold"];
+  dyn [label="Nonlinear Dynamics\nB747 planar model"];
+  integ [label="RK4 Integrator\nstate propagation"];
+  meas [label="Measurement Model\nGaussian sensor noise"];
+  est [label="Bayes/MAP Estimator\nprediction + update"];
+  logs [label="Telemetry Logger\nerrors, timing, covariance"];
+  vis [label="Plots / Animation / Report"];
+
+  ref -> ctrl;
+  state -> ctrl [label="feedback state"];
+  ctrl -> dyn [label="phi_cmd, thrust"];
+  dyn -> integ;
+  integ -> state;
+  state -> meas;
+  ctrl -> est [label="control input"];
+  meas -> est [label="measurement z"];
+  est -> logs;
+  state -> logs;
+  ctrl -> logs;
+  logs -> vis;
+}

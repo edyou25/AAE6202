@@ -153,26 +153,50 @@
   note         = {Instructor: Dr Wei Liu, Room R805, wei.w.liu@polyu.edu.hk}
 }
 
-@misc{aae6202code2026,
-  author       = {Yufa You and Ruige Yang},
-  title        = {AAE6202 Boeing 747 Circular-Tracking Project Source Code},
-  year         = {2026},
-  howpublished = {Unpublished course project repository},
-  note         = {Implementation files include run.py, controller.py, dynamics.py, estimation.py, reporting.py, and extended\_reporting.py}
+@misc{boeing747400,
+  author       = {{Boeing Commercial Airplanes}},
+  title        = {747-400 Passenger},
+  howpublished = {Historical Boeing product sheet},
+  url          = {https://www.boeing.com/resources/boeingdotcom/company/about_bca/startup/pdf/historical/747-400-passenger.pdf},
+  urldate      = {2026-03-25},
+  note         = {Used for 747-400 wingspan, maximum takeoff weight, and installed engine-rating information}
 }
 
-@misc{aae6202methodology2026,
-  author       = {Yufa You and Ruige Yang},
-  title        = {Methodology for Boeing 747 Circular-Tracking Simulation},
-  year         = {2026},
-  howpublished = {Supplementary project document, addicted/Methodology.pdf},
-  note         = {Coursework methodology note used as supplementary reference for RK4 settings and planar B747 model parameters}
+@techreport{burken1997,
+  author       = {John J. Burken and Mark A. Trani and Michael A. Parrish and Brian H. Whorton},
+  title        = {PCA Report No. 1 on Boeing 747-400 Flight Controller Design Using \textmu-Synthesis},
+  institution  = {NASA},
+  number       = {NASA/CR-97-206248},
+  year         = {1997},
+  url          = {https://ntrs.nasa.gov/api/citations/19970017380/downloads/19970017380.pdf},
+  urldate      = {2026-03-25},
+  note         = {Used for 747-400 wing reference area in the PCA benchmark model}
 }
 
-@misc{aae6202b747script2026,
-  author       = {Yufa You and Ruige Yang},
-  title        = {B747system.py: Supplementary RK4 versus Euler Benchmark for Planar Boeing 747 Dynamics},
-  year         = {2026},
-  howpublished = {Supplementary project script, addicted/B747system.py},
-  note         = {Contains the five-state B747 planar model and comparison settings used for cross-checking numerical propagation}
+@misc{pw400094guide,
+  author       = {{Aircraft Commerce}},
+  title        = {Owner's \& Operator's Guide: PW4000-94},
+  year         = {2007},
+  howpublished = {Aircraft Commerce, Issue 54},
+  url          = {https://www.aircraft-commerce.com/wp-content/uploads/aircraft-commerce-docs/Aircraft%20guides/PW4000-94/ISSUE%2054-PW4000-94%20GUIDE.pdf},
+  urldate      = {2026-03-25},
+  note         = {Used for PW4062 engine thrust rating applied to 747-400 variants}
+}
+
+@misc{mahajan2014,
+  author       = {Sanjoy Mahajan},
+  title        = {The Art of Insight in Science and Engineering},
+  year         = {2014},
+  howpublished = {MIT OpenCourseWare notes},
+  url          = {https://web.mit.edu/6.055/old/S2008/book/book.pdf},
+  urldate      = {2026-03-25},
+  note         = {Used for the representative Boeing 747 parasitic drag coefficient \(C_{D0}\approx 0.022\)}
+}
+
+@book{raymer2018,
+  author    = {Daniel P. Raymer},
+  title     = {Aircraft Design: A Conceptual Approach},
+  edition   = {6},
+  publisher = {AIAA},
+  year      = {2018}
 }

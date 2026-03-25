@@ -12,19 +12,33 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from controller import ControlConfig
+from report_assets import (
+    LATEX_ASSETS_DIR,
+    LEGACY_REPORT_DIR,
+    copy_asset,
+    paths_match,
+    save_figure,
+)
 from run import plot_results, simulate
 
 
-def _save_figure(fig: plt.Figure, out_path: Path) -> str:
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    return str(out_path)
+def _mirror_paths(output_dir: Path, filename: str) -> tuple[Path, ...]:
+    if paths_match(output_dir, LATEX_ASSETS_DIR):
+        return (LEGACY_REPORT_DIR / filename,)
+    return ()
+
+
+def _save_report_figure(fig: plt.Figure, output_dir: Path, filename: str) -> str:
+    return save_figure(
+        fig,
+        output_dir / filename,
+        mirror_paths=_mirror_paths(output_dir, filename),
+        dpi=150,
+    )
 
 
 def save_report_figures(
-    output_dir: str | Path = "data/report",
+    output_dir: str | Path = LATEX_ASSETS_DIR,
     t_end: float = 120.0,
     dt: float = 0.05,
     seed: int = 6202,
@@ -48,6 +62,8 @@ def save_report_figures(
         ref,
         out_path=output_dir / "simulation_overview.png",
     )
+    if paths_match(output_dir, LATEX_ASSETS_DIR):
+        copy_asset(paths["overview"], LEGACY_REPORT_DIR / "simulation_overview.png")
 
     phi_deg = np.rad2deg(hist[:, 3])
     dstate = telemetry["dstate"]
@@ -80,7 +96,7 @@ def save_report_figures(
     axes1[1, 1].set_xlabel("time (s)")
     axes1[1, 1].grid(True, alpha=0.3)
     axes1[1, 1].legend()
-    paths["part1_control"] = _save_figure(fig1, output_dir / "part1_control.png")
+    paths["part1_control"] = _save_report_figure(fig1, output_dir, "part1_control.png")
 
     fig2, axes2 = plt.subplots(2, 2, figsize=(12, 8))
     th = np.linspace(0.0, 2.0 * np.pi, 600)
@@ -115,7 +131,7 @@ def save_report_figures(
     axes2[1, 1].set_xlabel("time (s)")
     axes2[1, 1].grid(True, alpha=0.3)
     axes2[1, 1].legend()
-    paths["part2_dynamics"] = _save_figure(fig2, output_dir / "part2_dynamics.png")
+    paths["part2_dynamics"] = _save_report_figure(fig2, output_dir, "part2_dynamics.png")
 
     fig3, axes3 = plt.subplots(2, 2, figsize=(12, 8))
     axes3[0, 0].plot(time, telemetry["est_prior_err_norm"], label="prior error")
@@ -146,7 +162,7 @@ def save_report_figures(
     axes3[1, 1].set_ylabel("y (m)")
     axes3[1, 1].grid(True, alpha=0.3)
     axes3[1, 1].legend()
-    paths["part3_estimation"] = _save_figure(fig3, output_dir / "part3_estimation.png")
+    paths["part3_estimation"] = _save_report_figure(fig3, output_dir, "part3_estimation.png")
 
     return paths
 

@@ -16,11 +16,11 @@ RHO = 1.225
 class B747Params:
     """Representative Boeing 747-400 parameters for a planar simulation."""
 
-    mass: float = 333_400.0          # kg
-    wing_area: float = 541.2         # m^2
-    cd0: float = 0.02                # parasitic drag coefficient
-    k_induced: float = 0.045         # induced drag factor
-    max_thrust: float = 1_100_000.0  # N (total)
+    mass: float = 396_890.0          # kg
+    wing_area: float = 510.97        # m^2
+    cd0: float = 0.022               # parasitic drag coefficient
+    k_induced: float = 0.048         # induced drag factor
+    max_thrust: float = 1_126_290.0  # N (total)
     tau_phi: float = 2.0             # s, roll response time constant
     phi_limit_rad: float = np.deg2rad(35.0)
     v_min: float = 120.0             # m/s

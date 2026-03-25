@@ -1,0 +1,22 @@
+digraph controller_logic {
+  rankdir=TB;
+  graph [pad="0.2", nodesep="0.35", ranksep="0.55"];
+  node [shape=box, style="rounded,filled", color="#8a4f1d", fillcolor="#fff1e6", fontname="Arial"];
+  edge [color="#a05a2c", arrowsize=0.8, penwidth=1.4, fontname="Arial"];
+
+  s0 [label="Current state\n(x, y, psi, phi, v)"];
+  s1 [label="Geometry block\nradius_now, tangent, e_ct"];
+  s2 [label="Heading correction\natan(k_ct * -e_ct)\n+ clip"];
+  s3 [label="Desired heading\npsi_des"];
+  s4 [label="Feedforward bank\nphi_ff = atan(v_ref^2 / gR)"];
+  s5 [label="Error states\ne_psi, e_phi"];
+  s6 [label="Discrete LQR\nDelta phi_cmd = -K[e_psi,e_phi]^T"];
+  s7 [label="Bank command saturation"];
+  s8 [label="Speed-hold thrust\nD_guess + k_v(v_ref-v)"];
+  s9 [label="Control output\n(phi_cmd, thrust)"];
+
+  s0 -> s1 -> s2 -> s3 -> s5;
+  s0 -> s4 -> s5;
+  s5 -> s6 -> s7 -> s9;
+  s0 -> s8 -> s9;
+}
