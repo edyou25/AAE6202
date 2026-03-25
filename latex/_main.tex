@@ -12,6 +12,7 @@
   top=6pt,
   bottom=6pt,
   listing only,
+  listing options={basicstyle=\ttfamily\scriptsize},
   title=Curated Project Tree,
   fonttitle=\bfseries,
   coltitle=black
@@ -41,6 +42,13 @@
 \par
 \onehalfspacing
 %TC:endignore
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.42\textwidth]{../assets/747.png}
+\caption{Representative Boeing 747 airframe image corresponding to the aircraft class modeled in this report.}
+\label{fig:b747-photo}
+\end{figure}
 
 \section{Introduction}
 
@@ -103,12 +111,6 @@ R=120{,}000\,\mathrm{m}.
 \]
 This baseline reference geometry is a simulation-design choice for the present coursework report rather than a published B747 airframe parameter.
 
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.42\textwidth]{../assets/747.png}
-\caption{Representative Boeing 747 airframe image corresponding to the aircraft class modeled in this report.}
-\label{fig:b747-photo}
-\end{figure}
 
 \subsection{Performance Requirements}
 
@@ -311,7 +313,7 @@ At each simulation step in \texttt{run.py}, the following sequence is executed:
 
 From a software-engineering perspective, the project is organized as a compact closed-loop pipeline. The geometric reference is supplied to the controller, the controller generates bank-angle and thrust commands, the nonlinear B747 dynamics are propagated by RK4, and noisy measurements are processed by the Gaussian Bayes/MAP estimator. At the same time, telemetry signals such as tracking errors, timing, innovation norms, covariance traces, and state derivatives are collected for post-processing and report generation. This structure is intentionally modular: each mathematical part of the coursework corresponds directly to one code module.
 
-For reproducibility, the implementation structure is also summarized through a curated project tree. The root directory contains the main simulation modules, including controller design, nonlinear dynamics, estimation, reporting, visualization, and the executable entry point. The \texttt{tests/} folder stores unit tests for each functional module. The \texttt{docs/} folder contains the written technical notes and report drafts in both Chinese and English. The \texttt{data/} folder stores runtime animations, summary metrics, and test outputs. The \texttt{latex/} folder contains the final report source, bibliography, class file, compiled PDF artifacts, and a dedicated \texttt{assets/} directory that centralizes every Python-generated figure and Graphviz source referenced by the manuscript. Finally, \texttt{assets/} and \texttt{addicted/} provide supporting media and supplementary reference materials used to validate the modeling and RK4-versus-Euler comparison.
+For reproducibility, the implementation structure is also summarized through a curated project tree. The root directory contains the main simulation modules, including controller design, nonlinear dynamics, estimation, reporting, visualization, and the executable entry point. The \texttt{tests/} folder stores unit tests for each functional module. The \texttt{docs/} folder contains the written technical notes and report drafts. The \texttt{data/} folder stores runtime animations, summary metrics, and test outputs. The \texttt{latex/} folder contains the final report source, bibliography, class file, compiled PDF artifacts, and a dedicated \texttt{assets/} directory that centralizes every Python-generated figure and Graphviz source referenced by the manuscript.
 
 \begin{projecttreebox}
 AAE6202
@@ -366,7 +368,7 @@ AAE6202
 |   |-- test_reporting.py
 |   |-- test_run.py
 |   \-- test_visual.py
-\-- addicted
+\-- .git
 \end{projecttreebox}
 
 \begin{figure}[!htb]
@@ -378,35 +380,15 @@ AAE6202
 
 Figure \ref{fig:system-architecture} emphasizes that the controller and estimator use the same dynamic context but serve different roles. The controller shapes trajectory-tracking behavior, whereas the estimator is currently diagnostic and does not yet close the feedback loop. This separation is useful in a course project because it allows control performance and estimation behavior to be studied independently before tighter integration is attempted.
 
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.50\textwidth]{assets/module_dependency.png}
-\caption{Dependency structure among the main Python modules and test files.}
-\label{fig:module-dependency}
-\end{figure}
-
-Figure \ref{fig:module-dependency} shows that the project is structured around a clean separation of concerns: \texttt{controller.py} depends on aircraft parameters from \texttt{dynamics.py}, \texttt{estimation.py} reuses the propagation model, and both \texttt{reporting.py} and \texttt{extended\_reporting.py} depend on the runtime simulation entry point. This modularity is useful for testing and for extending the coursework toward more advanced future versions.
-
-\section{Results and Analysis}
+\section{Results}
 
 \subsection{Experiment Setup}
 
-The default experiment defined in \texttt{run.py} uses:
-\begin{enumerate}
-\item Time horizon \(t_{end}=800\,\mathrm{s}\), time step \(\Delta t=0.05\,\mathrm{s}\), and 16{,}000 simulation steps.
-\item Initial state
-\[
-[x_0,y_0,\psi_0,\phi_0,v_0]=[R+2000,\,0,\,96^\circ,\,0^\circ,\,210].
-\]
-This places the aircraft outside the target circle with a heading offset.
-\item Random seed 6202 for measurement noise.
-\end{enumerate}
-
-Generated artifacts include \texttt{data/circle\_flight\_animation.gif}, while every manuscript figure and Graphviz source file is exported to \texttt{latex/assets/} for direct inclusion in the final report.
+The baseline case in \texttt{run.py} uses \(t_{end}=800\,\mathrm{s}\), \(\Delta t=0.05\,\mathrm{s}\) (16{,}000 steps), initial state \([x_0,y_0,\psi_0,\phi_0,v_0]=[R+2000,\,0,\,96^\circ,\,0^\circ,\,210]\), and random seed 6202 for measurement noise. Figures and tables are generated automatically from the project code and exported to \texttt{latex/assets/}.
 
 \subsection{Tracking and Regulation Performance}
 
-Table \ref{tab:tracking-metrics} summarizes the main performance metrics.
+Table \ref{tab:tracking-metrics} reports the nominal closed-loop metrics.
 
 \begin{table}[!htb]
 \centering
@@ -436,7 +418,7 @@ Speed RMSE to \(v_{\mathrm{ref}}=210\) & \(0.276\,\mathrm{m/s}\) \\
 \end{tabular}
 \end{table}
 
-These results show that the large total RMSE is dominated by the intentional initial offset. After the transient phase, the aircraft converges closely to the desired circle and the residual radial error becomes very small. Bank-angle behavior remains within physical limits, and the command saturates only rarely, which indicates reasonable controller tuning. The speed regulation loop also performs well, with very small deviation from the target airspeed.
+The overall cross-track RMSE is dominated by the intentional initial offset, but after the transient the residual radial error is small. Bank angle remains within limits, command saturation is rare, and speed tracking stays tight around \(210\,\mathrm{m/s}\).
 
 \begin{figure}[!htb]
 \centering
@@ -445,11 +427,11 @@ These results show that the large total RMSE is dominated by the intentional ini
 \label{fig:appendix-part1}
 \end{figure}
 
-Figure \ref{fig:appendix-part1} complements Table \ref{tab:tracking-metrics} by showing how the cross-track and angular errors decay, how the commanded and realized bank angles align, and how thrust and stage objective remain well behaved during convergence.
+Figure \ref{fig:appendix-part1} confirms smooth decay of the tracking errors, close agreement between commanded and realized bank angle, and well-behaved thrust demand.
 
 \subsection{Computational Efficiency}
 
-Table \ref{tab:timing-metrics} reports controller and estimator timing.
+Table \ref{tab:timing-metrics} shows controller and estimator timing.
 
 \begin{table}[!htb]
 \centering
@@ -470,7 +452,7 @@ Mean estimator update time & \(0.0344\,\mathrm{ms}\) \\
 \end{tabular}
 \end{table}
 
-Both computations are negligible relative to the 50 ms control interval, so the framework is easily fast enough for the intended simulation setting.
+Both runtimes are negligible relative to the \(50\,\mathrm{ms}\) control interval, so the framework is comfortably fast enough for the present simulation setting.
 
 \begin{figure}[!htb]
 \centering
@@ -479,11 +461,11 @@ Both computations are negligible relative to the 50 ms control interval, so the 
 \label{fig:timing-distribution}
 \end{figure}
 
-The timing-distribution figure supplements the mean and percentile values reported in Table \ref{tab:timing-metrics}. It shows not only that the average runtime is small, but also that the distributions are compact and do not exhibit problematic long tails under the current experimental conditions.
+Figure \ref{fig:timing-distribution} shows that the timing distributions are compact and do not exhibit problematic long tails.
 
 \subsection{Estimation Diagnostics}
 
-Table \ref{tab:estimation-metrics} summarizes the estimation statistics.
+Table \ref{tab:estimation-metrics} summarizes the nominal estimation statistics.
 
 \begin{table}[!htb]
 \centering
@@ -505,7 +487,7 @@ Mean trace reduction \(\mathrm{tr}(P^-)\rightarrow\mathrm{tr}(P^+)\) & \(5.15\%\
 \end{tabular}
 \end{table}
 
-The covariance is reduced consistently after each update, confirming that the estimator contracts uncertainty. However, the posterior point estimate improves only modestly over the prior in this setup, suggesting that process and measurement confidence are of similar scale. Since the controller still uses the true state, estimator quality does not directly affect trajectory tracking in the current version.
+The covariance contracts after each update, but the posterior mean improves only slightly over the prior because process and measurement uncertainties are of similar scale. Since the controller still uses the true state, these results mainly quantify estimator consistency rather than closed-loop benefit.
 
 \begin{figure}[!htb]
 \centering
@@ -514,6 +496,8 @@ The covariance is reduced consistently after each update, confirming that the es
 \label{fig:appendix-part3}
 \end{figure}
 
+Figure \ref{fig:appendix-part3} visualizes prior/posterior errors, innovation magnitude, covariance reduction, and estimated versus true position in the nominal case.
+
 \begin{figure}[!htb]
 \centering
 \includegraphics[width=0.93\textwidth]{assets/estimation_covariance_detail.png}
@@ -521,11 +505,11 @@ The covariance is reduced consistently after each update, confirming that the es
 \label{fig:estimation-covariance-detail}
 \end{figure}
 
-Figures \ref{fig:appendix-part3} and \ref{fig:estimation-covariance-detail} provide a more detailed view of the estimator behavior. The difference between \(\mathrm{tr}(P^-)\) and \(\mathrm{tr}(P^+)\) reflects uncertainty reduction after each update, while the MAP objective shows how the posterior balances model consistency and measurement agreement over time.
+Figure \ref{fig:estimation-covariance-detail} adds the covariance-trace and MAP-objective detail behind the scalar estimator metrics.
 
-\subsection{Visual Evidence}
+\subsection{Trajectory and State Histories}
 
-The generated figures and animation show that the aircraft starts outside the reference circle and converges smoothly to near-perfect circular motion. The heading and bank-angle transients decay without oscillatory instability, while telemetry remains bounded over the simulation horizon.
+The baseline trajectory starts outside the target circle and converges smoothly to stable circular motion. The heading, bank-angle, and speed states remain bounded and physically reasonable throughout the run.
 
 \begin{figure}[!htb]
 \centering
@@ -534,6 +518,8 @@ The generated figures and animation show that the aircraft starts outside the re
 \label{fig:overview}
 \end{figure}
 
+Figure \ref{fig:overview} provides a compact global view of the nominal closed-loop behavior before the detailed state plots are examined.
+
 \begin{figure}[!htb]
 \centering
 \includegraphics[width=0.93\textwidth]{assets/part2_dynamics.png}
@@ -541,26 +527,19 @@ The generated figures and animation show that the aircraft starts outside the re
 \label{fig:appendix-part2}
 \end{figure}
 
-Figure \ref{fig:appendix-part2} complements the global overview by showing the dynamic states directly. The nominal trajectory follows the reference geometry cleanly, and the translational, angular, and speed channels all remain smooth and bounded throughout the maneuver.
+Figure \ref{fig:appendix-part2} shows that the nominal trajectory follows the reference circle cleanly and that the translational, angular, and speed channels remain smooth throughout the maneuver.
 
-\subsection{Cross-Check with Supplementary RK4/Euler Study}
+\subsection{RK4/Euler Cross-Check}
 
-The file \texttt{addicted/B747system.py} provides an independent numerical experiment for the same five-state B747 planar model. In that script, a fine-step RK4 solution with \(\Delta t_{\mathrm{ref}}=0.05\,\mathrm{s}\) is treated as reference, and both RK4 and Euler are then re-run at a coarser step size \(\Delta t_{\mathrm{test}}=0.5\,\mathrm{s}\) under a time-varying bank command. This is useful as an external consistency check for the numerical propagation part of the present project.
+The file \texttt{addicted/B747system.py} provides an independent benchmark for the same five-state planar model. It compares a fine-step RK4 reference with RK4 and Euler at \(\Delta t_{\mathrm{test}}=0.5\,\mathrm{s}\) under oscillatory bank input.
 
-The script reports that at \(t=100\,\mathrm{s}\), RK4 reduces the final-state error norm from \(43.920\) (Euler) to \(2.730\), i.e. about \(16.09\times\) smaller. The average state error norm over the whole horizon is also reduced from \(28.479\) to \(2.250\), i.e. about \(12.65\times\) smaller. For translational states and airspeed, the RK4 advantage is particularly large: the final \(x\)- and \(y\)-position errors are about \(15.8\times\) and \(16.8\times\) smaller than Euler, and the final speed error is about \(128.6\times\) smaller.
+At \(t=100\,\mathrm{s}\), RK4 reduces the final state error norm from \(43.920\) to \(2.730\) and the mean error norm from \(28.479\) to \(2.250\). Although one isolated bank-angle error is not always smaller, the total state error and trajectory accuracy strongly favor RK4.
 
-Interestingly, the bank-angle error in that benchmark is not uniformly smaller for RK4 at every instant: the reported final \(\phi\)-error is \(0.459^\circ\) for RK4 versus \(0.298^\circ\) for Euler. This does not invalidate the overall conclusion, because the total state error and most state components still strongly favor RK4. The result mainly shows that, for a particular oscillatory input and coarse step size, a single component error may not monotonically reflect the global integration quality. Therefore, in this report, RK4 superiority is judged by the full state error norm and by trajectory-level closed-loop performance rather than by any one isolated state component.
-
-These supplementary results support the design choice in the main project: using RK4 in \texttt{run.py} is justified not only theoretically but also empirically, since it provides substantially better nonlinear state propagation than Euler when the step size is not extremely small.
-
-\clearpage
-\section{Extended Experimental Studies}
-
-To enrich the report beyond a single nominal simulation, an extended campaign of numerical experiments was conducted. The purpose is twofold. First, the additional plots provide visual evidence for the transient, steady-state, and estimation behavior of the integrated system. Second, parameter sweeps reveal how robust the observed performance is to modeling and design choices such as integration step size, reference radius, measurement noise level, and LQR weights.
+This external check supports the use of RK4 in \texttt{run.py} for nonlinear state propagation at practical step sizes.
 
 \subsection{Transient Behavior in the First 120 Seconds}
 
-The most important dynamic changes occur during the early convergence phase, when the aircraft starts outside the target circle and must reduce both radial and angular errors. Figure \ref{fig:transient-detail} zooms into the first \(120\,\mathrm{s}\) and displays cross-track error, angular tracking errors, bank-angle transient, speed response, thrust usage, stage cost, per-step computation time, and innovation history.
+Figure \ref{fig:transient-detail} isolates the first \(120\,\mathrm{s}\), where the aircraft removes the initial radial and angular offsets.
 
 \begin{figure}[!htb]
 \centering
@@ -569,11 +548,11 @@ The most important dynamic changes occur during the early convergence phase, whe
 \label{fig:transient-detail}
 \end{figure}
 
-Several observations follow from Figure \ref{fig:transient-detail}. The cross-track error decays rapidly and smoothly without oscillatory divergence. The bank-angle response follows the command with expected first-order lag, and the commanded bank remains within the physical \(35^\circ\) bound. Speed remains tightly regulated around \(210\,\mathrm{m/s}\) despite the turning maneuver, which confirms that the simple thrust-hold law is sufficient for the current planar model. Finally, the controller and estimator computation times remain tiny relative to the \(50\,\mathrm{ms}\) sampling interval, reinforcing the practical efficiency of the framework.
+The transient is smooth: cross-track error decreases rapidly, bank angle follows the command with first-order lag, speed remains close to \(210\,\mathrm{m/s}\), and computation times stay negligible relative to the sampling interval.
 
 \subsection{State-Estimation Consistency and Error Geometry}
 
-The next question is whether the estimator captures the underlying state evolution in a consistent way. Figure \ref{fig:state-estimate-comparison} compares each true state component against its posterior estimate over the full simulation, while Figure \ref{fig:error-phase-hist} shows the geometry of the controller error state and the distribution of commanded versus realized bank angle.
+Figure \ref{fig:state-estimate-comparison} compares each true state with its posterior estimate, while Figure \ref{fig:error-phase-hist} shows the controller error geometry and bank-angle distributions.
 
 \begin{figure}[!htb]
 \centering
@@ -589,11 +568,11 @@ The next question is whether the estimator captures the underlying state evoluti
 \label{fig:error-phase-hist}
 \end{figure}
 
-The true and estimated state histories remain close throughout the simulation, especially after the initial transient. This matches the scalar statistics reported earlier: the mean prior error norm is \(8.380\), the mean posterior error norm is \(8.379\), and the posterior is better than the prior in about \(50.62\%\) of all steps. Since process and measurement uncertainties are comparable in the present setup, the posterior estimate does not dramatically outperform the prior at every step, but the covariance still contracts consistently. The phase portrait in Figure \ref{fig:error-phase-hist} also illustrates that the controller drives the joint error state toward the origin through a compact trajectory rather than through a wide oscillatory loop.
+The true and estimated states remain close after the initial transient, consistent with the scalar estimation metrics reported earlier. The phase portrait also shows that the controller drives the joint error state toward the origin without large oscillatory loops.
 
 \subsection{Sensitivity to Integration Time Step}
 
-Because the simulation is based on numerical propagation, time-step sensitivity is an important numerical question. Figure \ref{fig:dt-sensitivity} compares closed-loop metrics for \(\Delta t=0.02, 0.05, 0.10,\) and \(0.20\,\mathrm{s}\), using otherwise identical settings.
+Figure \ref{fig:dt-sensitivity} compares closed-loop metrics for \(\Delta t=0.02, 0.05, 0.10,\) and \(0.20\,\mathrm{s}\) under otherwise identical settings.
 
 \begin{figure}[!htb]
 \centering
@@ -618,11 +597,11 @@ Because the simulation is based on numerical propagation, time-step sensitivity 
 \end{tabular}
 \end{table}
 
-Table \ref{tab:dt-sensitivity} and Figure \ref{fig:dt-sensitivity} show that the baseline configuration is relatively insensitive to moderate changes in time step. The tracking and speed metrics change only slightly across the tested range, which suggests that the chosen \(\Delta t=0.05\,\mathrm{s}\) is conservative enough for stable and accurate closed-loop simulation. As expected, the mean prior and posterior estimation errors increase gradually for larger \(\Delta t\), because a coarser propagation step produces a less accurate dynamic prior.
+Table \ref{tab:dt-sensitivity} and Figure \ref{fig:dt-sensitivity} show only mild variation across the tested step sizes. The baseline choice \(\Delta t=0.05\,\mathrm{s}\) is therefore sufficiently conservative for stable and accurate closed-loop simulation.
 
 \subsection{Sensitivity to Reference-Circle Radius}
 
-Reference geometry also influences control effort, because smaller circles require larger coordinated-turn bank angles. Figure \ref{fig:radius-sensitivity} compares four radii between \(80{,}000\,\mathrm{m}\) and \(200{,}000\,\mathrm{m}\).
+Figure \ref{fig:radius-sensitivity} compares four reference radii between \(80{,}000\,\mathrm{m}\) and \(200{,}000\,\mathrm{m}\).
 
 \begin{figure}[!htb]
 \centering
@@ -631,7 +610,7 @@ Reference geometry also influences control effort, because smaller circles requi
 \label{fig:radius-sensitivity}
 \end{figure}
 
-As the reference radius increases, the feedforward bank angle decreases monotonically, which is physically consistent with coordinated-turn theory. The observed maximum bank angle follows the same trend, falling from about \(28.53^\circ\) at \(80{,}000\,\mathrm{m}\) to about \(26.96^\circ\) at \(200{,}000\,\mathrm{m}\). The tracking RMSE changes only modestly, which indicates that the controller structure generalizes well across a range of path curvatures. This is a useful robustness property for trajectory-tracking applications, where mission geometry may vary.
+As the radius increases, the feedforward and observed bank angles decrease monotonically, while tracking RMSE changes only modestly. The controller therefore generalizes well across a useful range of path curvatures.
 
 \begin{figure}[!htb]
 \centering
@@ -640,11 +619,11 @@ As the reference radius increases, the feedforward bank angle decreases monotoni
 \label{fig:trajectory-family}
 \end{figure}
 
-Figure \ref{fig:trajectory-family} adds a geometric interpretation to the scalar sensitivity metrics. It shows visually that all tested cases converge toward their respective circles without pathological behavior, even though the curvature and required bank-angle demand change substantially.
+Figure \ref{fig:trajectory-family} shows that all tested cases converge toward their respective circles without pathological behavior.
 
 \subsection{Sensitivity to Measurement Noise}
 
-The estimator is expected to be more sensitive to sensor quality than the controller, because the current controller still uses the true state. Figure \ref{fig:noise-sensitivity} verifies this intuition by scaling the measurement-noise covariance over a factor range from \(0.5\) to \(4.0\).
+Figure \ref{fig:noise-sensitivity} scales the measurement-noise covariance from \(0.5\) to \(4.0\) times the baseline value.
 
 \begin{figure}[!htb]
 \centering
@@ -653,11 +632,11 @@ The estimator is expected to be more sensitive to sensor quality than the contro
 \label{fig:noise-sensitivity}
 \end{figure}
 
-The tracking metrics remain effectively unchanged in this sweep, which is expected because control does not depend on the estimate in the current implementation. In contrast, estimation metrics react clearly: the mean prior/posterior error norms grow from roughly \(6.0\) at half-noise level to about \(19.9\) at four-times noise, and the mean innovation norm increases accordingly. This separation between control robustness and estimation degradation is pedagogically helpful, because it shows exactly which part of the architecture is affected by each modeling assumption.
+Tracking metrics remain nearly unchanged because control does not yet use the estimate, whereas estimation errors and innovation norms increase clearly with noise level. The sweep therefore isolates estimator sensitivity without confounding it with controller behavior.
 
 \subsection{Sensitivity to LQR Weight Selection}
 
-To study controller tuning, three LQR weight sets were tested: conservative \((Q=\mathrm{diag}(20,8),R=2)\), baseline \((Q=\mathrm{diag}(30,10),R=1)\), and aggressive \((Q=\mathrm{diag}(60,15),R=0.5)\). These are project-defined comparison cases rather than externally prescribed textbook settings. Figure \ref{fig:lqr-weight-sensitivity} summarizes the results.
+Figure \ref{fig:lqr-weight-sensitivity} compares conservative, baseline, and aggressive LQR weights.
 
 \begin{figure}[!htb]
 \centering
@@ -666,11 +645,11 @@ To study controller tuning, three LQR weight sets were tested: conservative \((Q
 \label{fig:lqr-weight-sensitivity}
 \end{figure}
 
-The aggressive design improves tracking metrics, reducing cross-track RMSE from \(449.86\,\mathrm{m}\) in the conservative case to \(431.76\,\mathrm{m}\), and heading RMSE from \(4.12^\circ\) to \(3.45^\circ\). However, this improvement comes at the cost of higher peak bank angle and higher command saturation ratio. In contrast, the conservative design reduces control aggressiveness but produces weaker transient correction. Therefore, the baseline choice remains a reasonable compromise between responsiveness and actuator margin.
+The aggressive design improves tracking but increases peak bank angle and saturation, whereas the conservative design reduces control effort at the expense of weaker correction. The baseline choice remains the best compromise between responsiveness and actuator margin.
 
 \subsection{Recreated RK4-versus-Euler Benchmark}
 
-Finally, the supplementary RK4/Euler benchmark was recreated using the project dynamics in order to ensure methodological consistency. The recreated case retains the benchmark settings \(\Delta t_{\mathrm{ref}}=0.05\,\mathrm{s}\), \(\Delta t_{\mathrm{test}}=0.5\,\mathrm{s}\), \(T_{\mathrm{sim}}=100\,\mathrm{s}\), and \(\phi_{\mathrm{cmd}}=15^\circ+10^\circ\sin(2\pi t/20)\). Figure \ref{fig:rk4-vs-euler-project} shows the resulting comparison.
+Figure \ref{fig:rk4-vs-euler-project} recreates the supplementary RK4/Euler benchmark using the project dynamics implementation.
 
 \begin{figure}[!htb]
 \centering
@@ -679,21 +658,15 @@ Finally, the supplementary RK4/Euler benchmark was recreated using the project d
 \label{fig:rk4-vs-euler-project}
 \end{figure}
 
-The recreated benchmark closely matches the independent script in \texttt{addicted/B747system.py}. In the present reproduction, the final total state error norm is \(2.666\) for RK4 and \(43.871\) for Euler, so Euler is about \(16.46\times\) worse. The mean total state error norm is \(2.253\) for RK4 versus \(28.556\) for Euler, i.e. Euler is about \(12.68\times\) worse on average. This agreement between the independent script and the project-native reproduction strengthens confidence that the reported numerical advantages of RK4 are not accidental artifacts of one implementation.
-
-\subsection{Summary of Extended Experimental Evidence}
-
-Taken together, the extended experiments paint a coherent picture. The nominal controller-estimator architecture is stable, computationally efficient, and physically well behaved. The main tracking results are robust to moderate time-step changes and to changes in reference curvature. Estimation quality degrades as sensor noise increases, but this degradation is isolated in the estimator because feedback still uses the true state. More aggressive LQR weights improve tracking but demand more control authority. Finally, both external and recreated benchmarks strongly confirm the numerical advantage of RK4 over forward Euler for this nonlinear flight-dynamics problem.
+The recreated benchmark matches the independent script closely: RK4 is about \(16.46\times\) better than Euler in final total state error and about \(12.68\times\) better in mean total state error. This consistency reinforces the numerical advantage of RK4 for the present nonlinear dynamics model.
 
 \section{Discussion}
 
-The project demonstrates that a relatively simple guidance and regulation architecture can achieve precise circular tracking for a nonlinear planar aircraft model. The outer-loop geometric correction removes large radial offsets effectively, while the inner-loop LQR keeps heading and bank dynamics well behaved. This division of responsibility leads to a controller that is both interpretable and computationally light.
+The combined results show that the controller-estimator architecture is stable, computationally light, and accurate enough for circular tracking in the present nonlinear planar model. Outer-loop geometric correction removes large radial offsets effectively, inner-loop LQR regulates heading and bank dynamics well, and RK4 keeps propagation error from dominating the closed-loop response.
 
-RK4 is important in this framework because the underlying aircraft model is nonlinear. The good steady-state performance indicates that numerical propagation error is not dominating the closed-loop response under the chosen time step. The supplementary benchmark in \texttt{addicted/B747system.py} further strengthens this point: even with a coarse integration step, RK4 remains much more reliable than Euler in overall state accuracy. The estimator results also show that the simulation environment supports uncertainty analysis, even though estimation is not yet used inside the feedback loop.
+The framework nevertheless remains simplified. The aircraft model is planar, the LQR design uses a first-order discretization, and the estimator is not yet closed around the controller. These assumptions are acceptable for coursework demonstration but limit physical fidelity and robustness claims.
 
-At the same time, the model remains simplified. The aircraft is limited to planar motion, the LQR design uses a first-order discretization, and the estimator is decoupled from the control action. These simplifications are acceptable for coursework demonstration, but they limit physical fidelity and robustness conclusions.
-
-If the framework were extended in future work, one natural path would be to move from nominal optimization toward explicitly uncertainty-aware decision models. Stochastic-programming formulations could optimize expected performance across scenarios \supercite{birge1997,haneveld2020}; robust optimization could hedge against bounded but adverse parameter variations \supercite{bental2009,bertsimas2011}; and distributionally robust optimization could bridge engineering robustness with statistical ambiguity in deployment conditions \supercite{blanchet2024,bomze2022}. These references therefore provide a theoretical pathway for evolving the current simulation-and-diagnostics platform into a more general uncertainty-aware aerospace decision framework.
+Future work could close the loop around estimated states, incorporate disturbances such as wind, and extend the design toward uncertainty-aware formulations including stochastic, robust, and distributionally robust optimization \supercite{birge1997,haneveld2020,bental2009,bertsimas2011,blanchet2024,bomze2022}.
 
 \section{Conclusion}
 
@@ -703,7 +676,6 @@ The main limitations are the planar flight assumption, simplified actuator and d
 
 \section{One-Page Summary of Group Contributions}
 
-\subsection{Contribution Table}
 
 \begin{table}[!htb]
 \centering
@@ -722,7 +694,6 @@ Ruige Yang & 25145125R & Simulation analysis, controller-estimator review, resul
 \end{adjustbox}
 \end{table}
 
-\subsection{Narrative Summary}
 
 Yufa You prepared the integrated report, organized the methodology and results into the final submission format, and consolidated the project outputs into the LaTeX template. Ruige Yang reviewed the simulation framework, checked the reported numerical metrics against the project outputs, and refined the technical interpretation of the controller, dynamics, and estimator results. Both members jointly reviewed the final manuscript and validated the overall structure before submission.
 
