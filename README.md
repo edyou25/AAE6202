@@ -16,6 +16,23 @@ Boeing 747 圆轨迹飞行仿真（LQR 控制 + 4阶 RK 积分）。
 ## 依赖
 - `conda env create -f env.yaml`
 
+## LaTeX 依赖
+
+Ubuntu 24.04 上编译 `latex/_main.tex` 需要以下系统包：
+
+```bash
+sudo apt update
+sudo apt install texlive-fonts-extra texlive-science texlive-bibtex-extra asymptote biber
+```
+
+这些包分别补齐：
+
+- `texlive-fonts-extra`：提供 `newtxtext.sty`、`newtxmath.sty`
+- `texlive-science`：提供 `siunitx.sty`
+- `texlive-bibtex-extra`：提供 `biblatex.sty`
+- `asymptote`：提供 `asymptote.sty`
+- `biber`：供 `biblatex` 处理参考文献
+
 ## 运行方式
 ```bash
 python3 run.py
@@ -36,3 +53,10 @@ python3 run.py
 - `latex/wordcount.py`：LaTeX 正文字数统计脚本。
 - `latex/template/`：原始模板备份。
 - `latex/output/_main.pdf`：已生成的报告 PDF。
+
+编译命令：
+
+```bash
+cd latex
+latexmk -pdf -interaction=nonstopmode -outdir=output _main.tex
+```
