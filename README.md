@@ -22,7 +22,7 @@ Ubuntu 24.04 上编译 `latex/_main.tex` 需要以下系统包：
 
 ```bash
 sudo apt update
-sudo apt install texlive-fonts-extra texlive-science texlive-bibtex-extra asymptote biber
+sudo apt install texlive-fonts-extra texlive-science texlive-bibtex-extra asymptote biber python-is-python3
 ```
 
 这些包分别补齐：
@@ -32,6 +32,7 @@ sudo apt install texlive-fonts-extra texlive-science texlive-bibtex-extra asympt
 - `texlive-bibtex-extra`：提供 `biblatex.sty`
 - `asymptote`：提供 `asymptote.sty`
 - `biber`：供 `biblatex` 处理参考文献
+- `python-is-python3`：提供 `python` 命令，供模板内的 `wordcount.py` 使用
 
 ## 运行方式
 ```bash
@@ -58,5 +59,15 @@ python3 run.py
 
 ```bash
 cd latex
-latexmk -pdf -interaction=nonstopmode -outdir=output _main.tex
+latexmk -pdf -shell-escape -f -interaction=nonstopmode -outdir=output _main.tex
+```
+
+如果需要手动编译，顺序如下：
+
+```bash
+cd latex
+pdflatex -shell-escape -interaction=nonstopmode -output-directory=output _main.tex
+biber output/_main
+pdflatex -shell-escape -interaction=nonstopmode -output-directory=output _main.tex
+pdflatex -shell-escape -interaction=nonstopmode -output-directory=output _main.tex
 ```
