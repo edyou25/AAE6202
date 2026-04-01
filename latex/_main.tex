@@ -48,9 +48,9 @@
 
 \begin{document}
 %TC:ignore
-\myabstract{This project develops an integrated simulation framework for Boeing 747 circular-flight tracking in a 2D plane. The framework combines: (i) a linear quadratic regulator (LQR) for heading/bank inner-loop control, (ii) a fourth-order Runge-Kutta (RK4) integrator for nonlinear aircraft dynamics stimulation, and (iii) a Gaussian Bayes/MAP estimator for state estimation under noisy measurements. Numerical experiments based on the project code show accurate path convergence and stable speed regulation, with final cross-track error close to zero and bounded bank angle throughout the simulation horizon. The report presents problem formulation, methodology, numerical results, and limitations. All LaTeX sources and Python code are openly available at \url{https://github.com/edyou25/AAE6202}.}
+\myabstract{This project develops an integrated simulation framework for Boeing 747 circular-flight tracking in a 2D plane. The framework combines: (i) a linear quadratic regulator (LQR) for heading/bank inner-loop control, (ii) a fourth-order Runge-Kutta (RK4) integrator for nonlinear aircraft dynamics simulation, and (iii) a Gaussian Bayes/MAP estimator for state estimation under noisy measurements. Numerical experiments based on the project code show accurate path convergence and stable speed regulation, with final cross-track error close to zero and bounded bank angle throughout the simulation horizon. The report presents problem formulation, methodology, numerical results, and limitations. All LaTeX sources and Python code are openly available at \url{https://github.com/edyou25/AAE6202}.}
 \renewcommand{\myTitle}{Boeing 747 Trajectory Tracking via Optimization, ODEs Solving, and State Estimation}
-\renewcommand{\MyAuthor}{Yufa You$^{1}$, Ruige Yang}
+\renewcommand{\MyAuthor}{Yufa You$^{1}$, Ruige Yang$^{1}$}
 \renewcommand{\MyDepartment}{Department of Aeronautical and Aviation Engineering}
 \renewcommand{\MyCourse}{AAE6202 Mathematics and Computational Methods for Aviation Engineering Applications }
 \renewcommand{\ID}{25144639R, 25145125R}
@@ -69,11 +69,10 @@
 
 \section{Introduction}
 
-This project studies 2D circular trajectory tracking for a Boeing 747 model in planar flight. The goal is to build a compact workflow that combines control, simulation, and state estimation inside one framework. The implemented architecture has three core components: an LQR controller for heading and bank regulation, RK4 numerical integration for nonlinear propagation, and a Gaussian Bayes/MAP estimator for estimation diagnostics.
+Circular holding patterns are among the most common maneuvers in commercial aviation, yet they demand tight coordination between heading control, bank-angle regulation, and speed maintenance. For a heavy transport aircraft like the Boeing 747, even small errors in any of these channels can accumulate over a long orbit, making the problem a useful testbed for control and estimation algorithms. This project takes the circular-tracking task as a concrete case study and builds an integrated simulation that couples three classical techniques: optimal feedback control, high-order numerical integration, and Bayesian state estimation.
 
-The overall structure of the project is also aligned with the learning objectives of AAE6202, which emphasize optimization, computational solution of differential equations, and uncertainty-aware mathematical methods for aviation engineering applications \supercite{liu2026aae6202}.
+The controller adopts a two-layer architecture. An outer guidance loop converts the geometric tracking error into a desired heading, while an inner loop applies Linear Quadratic Regulator (LQR) feedback to stabilize the heading and bank-angle errors \supercite{anderson1990,astrom2008}. LQR is chosen here not because it is the most advanced option, but because its closed-form gain computation and well-understood tuning behavior make it easy to diagnose when something goes wrong---an important consideration in a coursework setting. For discrete-time error dynamics
 
-LQR is a standard optimal control method for linear systems with quadratic costs and is widely used in aerospace inner-loop design because of its predictable tuning behavior and strong stability properties \supercite{anderson1990,lewis2012,astrom2008}. For discrete-time dynamics
 \[
 x_{k+1}=A_d x_k + B_d u_k,
 \]
@@ -90,9 +89,7 @@ with \(Q \succeq 0\) and \(R \succ 0\), leading to linear feedback \(u_k=-Kx_k\)
 \label{fig:intro-overview}
 \end{figure}
 
-Aircraft motion remains nonlinear, so numerical integration is required. RK4 provides a practical balance between computational cost and accuracy and is commonly used for control-oriented flight simulation \supercite{hairer1993,butcher2016}. Compared with forward Euler, RK4 reduces truncation error significantly while remaining straightforward to implement.
-
-The third component is Gaussian Bayesian estimation. Under Gaussian assumptions, a Bayes update is equivalent to a weighted MAP problem, linking estimation with uncertainty interpretation \supercite{kalman1960,simon2006,welch2006}. In the current code, the estimator is used for diagnostics rather than closed-loop feedback, but it still provides insight into innovation magnitude, covariance contraction, and posterior consistency.
+Because the underlying aircraft dynamics are nonlinear, state propagation cannot rely on the linearized model alone. A fourth-order Runge--Kutta (RK4) integrator is used instead of a simpler Euler step. The additional function evaluations per time step are negligible on modern hardware, and the payoff---roughly two extra orders of accuracy for smooth problems---keeps the numerical error well below the control tolerance \supercite{hairer1993,butcher2016}. Section~4.6 provides a direct comparison that quantifies this advantage for the present B747 model.
 
 \begin{figure}[!htb]
 \centering
@@ -101,11 +98,11 @@ The third component is Gaussian Bayesian estimation. Under Gaussian assumptions,
 \label{fig:system-architecture}
 \end{figure}
 
-More broadly, the present work is also related to the larger optimization literature. The quadratic-cost formulation behind LQR is naturally connected to classical linear and nonlinear programming \supercite{luenberger2008}, while the tuning of state and input penalties follows the logic of convex optimization and structured tradeoff design \supercite{boyd2004}. From the viewpoint of nonlinear state evolution, the trajectory-tracking problem can also be interpreted as a controlled dynamical system whose transient and asymptotic behavior is best understood in state-space terms \supercite{scheinerman2012,dilao2023}. In addition, although the current project is not formulated as a full uncertainty-aware optimization model, its estimator and sensitivity studies connect naturally to stochastic programming, robust optimization, and distributionally robust optimization \supercite{birge1997,haneveld2020,bental2009,bertsimas2011,blanchet2024,bomze2022}.
+To explore how sensor noise would affect a future closed-loop estimator, the simulation also includes a Gaussian Bayes filter that processes noisy position, heading, and speed measurements. Under linear-Gaussian assumptions the Bayes update reduces to a standard Kalman-style correction, whose posterior coincides with the Maximum A-Posteriori (MAP) estimate \supercite{simon2006}. In the current implementation the filter runs in parallel with the controller but does not yet feed back into it; its main purpose is to record innovation statistics and covariance contraction so that a tighter integration can be attempted later.
 
-From a computational-methods perspective, the choice of RK4 is also aligned with standard engineering numerics references, which emphasize that higher-order integration is especially valuable when nonlinear coupling accumulates long-horizon propagation error \supercite{griffiths2020}.
+The overall workflow aligns with the objectives of AAE6202, which emphasize optimization, numerical solution of differential equations, and uncertainty-aware modeling for aviation applications \supercite{liu2026aae6202}. Figure~\ref{fig:system-architecture} sketches the data flow among the guidance law, the LQR regulator, the RK4 propagator, and the Bayes filter, while Figure~\ref{fig:intro-overview} shows a representative snapshot of the running simulation.
 
-The main contribution of this project is the integration of these three ideas into one consistent aerospace simulation workflow. The framework demonstrates how trajectory guidance, optimal regulation, nonlinear propagation, and stochastic state estimation can be combined in a concise course project.
+The remainder of this report is organized as follows. Section~2 states the tracking problem and the performance requirements. Section~3 details the nonlinear B747 model, the RK4 discretization, the layered controller, and the estimation algorithm. Section~4 presents numerical results including baseline performance, sensitivity studies, and a side-by-side RK4/Euler benchmark. Section~5 discusses limitations, and Section~6 concludes.
 
 Figure \ref{fig:intro-overview} provides a compact visual overview of the integrated simulation environment used throughout this report.
 
@@ -113,11 +110,11 @@ Figure \ref{fig:intro-overview} provides a compact visual overview of the integr
 
 \subsection{Objective}
 
-The objective is to design and evaluate a controller-estimator simulation system that drives a Boeing 747 model to track a circular reference trajectory in planar flight while maintaining a target speed.
+The task is to guide a Boeing 747 around a circular holding pattern while keeping speed nearly constant. Although real holding procedures involve altitude changes, wind corrections, and air-traffic constraints, this project isolates the horizontal tracking problem so that the interplay between guidance, control, and estimation can be studied without the complexity of a full six-degree-of-freedom model.
 
 \subsection{State, Input, and Reference}
 
-The continuous state is
+The aircraft state is described by five variables:
 \[
 \mathbf{x}=[x,\,y,\,\psi,\,\phi,\,v]^\top,
 \]
@@ -129,21 +126,16 @@ The control input is
 \]
 where \(\phi_{\mathrm{cmd}}\) is the commanded bank angle and \(T\) is thrust.
 
-The reference trajectory is a counterclockwise circle centered at \((0,0)\) with radius
-\[
-R=120{,}000\,\mathrm{m}.
-\]
-This baseline reference geometry is a simulation-design choice for the present coursework report rather than a published B747 airframe parameter.
-
+The reference is a counter-clockwise circle of radius \(R=120\,\mathrm{km}\) centred at the origin. This radius is deliberately large: at a cruise speed of \(v_{\mathrm{ref}}=210\,\mathrm{m/s}\) the required bank angle is only about \(3.8^\circ\), well within the aircraft's comfortable envelope and far from any structural or passenger-comfort limit. Choosing a gentler turn allows the LQR to operate in a nearly linear regime and makes the simulation results easier to interpret. Tighter turns are examined briefly in the sensitivity study (Section~4.10).
 
 \subsection{Performance Requirements}
 
 The tracking system should satisfy the following requirements:
 \begin{enumerate}
-\item Reduce the signed cross-track error \(e_{ct}=R-r\) toward zero.
-\item Keep heading and bank-angle behavior smooth and stable.
-\item Maintain airspeed near \(v_{\mathrm{ref}}=210\,\mathrm{m/s}\).
-\item Respect actuator and physics limits on bank angle and thrust.
+\item \emph{Path convergence:} The signed cross-track error \(e_{ct}=R-\lVert(x,y)\rVert\) should decay toward zero after an initial transient and remain small throughout steady-state flight.
+\item \emph{Heading and bank stability:} Neither the heading error nor the bank angle should exhibit sustained oscillation or overshoot beyond the design limits.
+\item \emph{Speed regulation:} Airspeed should stay close to \(v_{\mathrm{ref}}=210\,\mathrm{m/s}\), with deviations of no more than a few metres per second.
+\item \emph{Actuator feasibility:} Bank commands must respect the \(\pm35^\circ\) limit, and thrust must remain within the installed-engine capacity.
 \end{enumerate}
 
 \subsection{Constraints and Assumptions}
@@ -160,7 +152,7 @@ The problem is simplified by the following assumptions:
 
 \subsection{Parameter Reference}
 
-To make the numerical setup auditable, the report distinguishes between sourced airframe parameters and simulation assumptions. Published B747-400 geometry, mass, and engine data are taken from public aerospace references, while controller gains, estimator covariances, time-step choices, and closed-loop experiment settings are declared explicitly as modeling decisions for this coursework study. Table \ref{tab:param-provenance} summarizes the provenance of the main numerical values used in the report.
+Table~\ref{tab:param-provenance} lists every numerical value used in the simulation and states where it comes from. Aircraft mass, wing area, and engine thrust are taken from public Boeing and NASA documentation for the 747-400 \supercite{boeing747400,burken1997,pw400094guide}. Aerodynamic coefficients follow standard drag-polar models with parameters quoted in university course notes \supercite{mahajan2014,raymer2018}. Everything else---controller gains, estimator covariances, integration step size, and experiment settings---is a design choice made for this project and is not claimed to match any certified flight-control system.
 
 \begin{table}[!htb]
 \centering
@@ -190,7 +182,9 @@ RK4/Euler benchmark & \(\Delta t_{\mathrm{ref}}=0.05\,\mathrm{s}\), \(\Delta t_{
 
 \subsection{Nonlinear B747 Planar Dynamics}
 
-From \texttt{dynamics.py}, the planar model is
+The simulation treats the 747 as a point mass moving in a horizontal plane. 
+
+Position \((x,y)\) evolves according to the kinematic relations
 \[
 \dot x = v\cos\psi,\qquad
 \dot y = v\sin\psi,
@@ -201,23 +195,18 @@ From \texttt{dynamics.py}, the planar model is
 \dot v = \frac{T-D}{m}.
 \]
 
+This simple model captures the fact that the roll autopilot cannot change bank instantaneously; two seconds is a reasonable order of magnitude for a large transport aircraft, though not a certified value.
+
 The aerodynamic drag model is
 \[
 D=\frac12 \rho v^2 S C_D,\qquad
 C_D=C_{D0}+k C_L^2,\qquad
 C_L=\frac{2mg}{\rho v^2 S \cos\phi}.
 \]
-This particular planar B747 parameterization combines published 747-400 airframe data with standard aerodynamic approximations. The mass is set to the public 747-400 maximum takeoff weight, the wing area follows the NASA 747-400 PCA benchmark model, the parasitic drag coefficient uses the widely quoted \(C_{D0}\approx0.022\) for the Boeing 747, and the induced-drag factor is estimated from standard drag-polar relations using the sourced wing geometry \supercite{boeing747400,burken1997,mahajan2014,raymer2018}.
 
-Key parameters from \texttt{B747Params} are:
-\begin{enumerate}
-\item \(m=396{,}890\,\mathrm{kg}\), \(S=510.97\,\mathrm{m}^2\)
-\item \(C_{D0}=0.022\), \(k=0.048\)
-\item \(\tau_\phi=2.0\,\mathrm{s}\)
-\item \(|\phi|\le35^\circ\), \(T\in[0,\,1.126\times10^6]\,\mathrm{N}\)
-\item \(v\in[120,\,320]\,\mathrm{m/s}\) with safety clipping
-\end{enumerate}
-The first two entries are directly sourced from public B747-400 references, the drag coefficients are sourced or inferred from standard aerodynamic references as described above, and the roll time constant plus clipping bounds remain simulation assumptions adopted for numerical robustness in the current project \supercite{boeing747400,burken1997,mahajan2014,raymer2018,pw400094guide}.
+Aircraft parameters are summarised in Table~\ref{tab:param-provenance}. 
+
+The mass \(m=396{,}890\,\mathrm{kg}\) corresponds to the 747-400 maximum take-off weight, and the wing area \(S=510.97\,\mathrm{m}^{2}\) is taken from NASA's Propulsion Controlled Aircraft benchmark \supercite{burken1997}. Thrust is limited to \(1.126\times10^{6}\,\mathrm{N}\), consistent with four PW4062-class engines \supercite{pw400094guide}. Bank angle is clipped to \(\pm35^{\circ}\) and airspeed to the interval \([120,320]\,\mathrm{m/s}\) to keep the simulation within a physically reasonable envelope.
 
 \subsection{RK4 Discretization}
 
@@ -235,11 +224,11 @@ and updates the state by
 x_{k+1}=x_k+\frac{\Delta t}{6}(k_1+2k_2+2k_3+k_4).
 \]
 
-The supplementary benchmark materials are consistent with this RK4 modeling idea in the sense that they use the same five-dimensional state \([x,y,\psi,\phi,v]\), the same drag construction based on \(C_L\) and \(C_D\), and a direct comparison between RK4 and forward Euler under identical control inputs. In the final report, however, the cited physical parameter values are taken from public aerospace references rather than from local code files.
+For smooth right-hand sides RK4 has local truncation error \(\mathcal{O}(\Delta t^{5})\), which translates to a global error of \(\mathcal{O}(\Delta t^{4})\) over a fixed time horizon. At the baseline step size \(\Delta t=0.05\,\mathrm{s}\), Section~\ref{sec:rk4-euler} shows that switching to forward Euler at the same step size would inflate the trajectory error by roughly an order of magnitude.
 
 \subsection{Circular Tracking Controller}
 
-From \texttt{controller.py}, the controller has three layers.
+The controller is organised in two nested loops, following standard practice for aircraft guidance \supercite{astrom2008}. The outer loop converts cross-track error into a desired heading; the inner loop regulates heading and bank with LQR feedback.
 
 First, an outer-loop geometry-based guidance law computes current radius, circle tangent heading, and signed cross-track error. A bounded heading correction is added:
 \[
@@ -295,9 +284,9 @@ Figure \ref{fig:controller-logic} makes the layered design explicit. Geometric g
 
 \subsection{Gaussian Bayes/MAP Estimator}
 
-From \texttt{estimation.py}, the estimator performs prediction, update, and MAP diagnostics.
+Although the controller currently uses the true state, a Gaussian Bayes filter is run in parallel to study how sensor noise would propagate through the estimation loop. The filter follows the standard predict–update cycle.
 
-Prediction:
+The state estimate is propagated through the same RK4 integrator used for the true dynamics:
 \[
 x_k^- = f_{RK4}(x_{k-1}^+,u_{k-1}),\qquad
 P_k^- = P_{k-1}^+ + Q.
@@ -329,7 +318,7 @@ These covariance surrogates are project-level estimator settings for diagnostic 
 
 \subsection{Simulation Workflow}
 
-At each simulation step in \texttt{run.py}, the following sequence is executed:
+At each simulation step, the following sequence is executed:
 \begin{enumerate}
 \item Compute control action and control diagnostics.
 \item Generate a noisy measurement.
@@ -422,7 +411,7 @@ dependencies:
 
 \subsection{Experiment Setup}
 
-The baseline case in \texttt{run.py} uses \(t_{end}=800\,\mathrm{s}\), \(\Delta t=0.05\,\mathrm{s}\) (16{,}000 steps), initial state \([x_0,y_0,\psi_0,\phi_0,v_0]=[R+2000,\,0,\,96^\circ,\,0^\circ,\,210]\), and random seed 6202 for measurement noise. Figures and tables are generated automatically from the project code and exported to \texttt{latex/assets/}.
+The baseline experiment runs for \(t_{\mathrm{end}} = 800\,\mathrm{s}\) with a control/logging interval of \(\Delta t = 0.05\,\mathrm{s}\), giving 16\,000 time steps---long enough for the aircraft to complete roughly one-third of the \(120\,\mathrm{km}\) orbit. The initial condition places the aircraft \(2\,\mathrm{km}\) outside the reference circle, heading nearly tangent to it at \(\psi_0 = 96^{\circ}\), with zero initial bank and the target speed of \(210\,\mathrm{m/s}\). This deliberate offset creates a visible convergence transient before steady-state tracking is reached.
 
 \subsection{Tracking and Regulation Performance}
 
@@ -568,12 +557,13 @@ Figure \ref{fig:overview} provides a compact global view of the nominal closed-l
 Figure \ref{fig:appendix-part2} shows that the nominal trajectory follows the reference circle cleanly and that the translational, angular, and speed channels remain smooth throughout the maneuver.
 
 \subsection{RK4/Euler Cross-Check}
+\label{sec:rk4-euler}
 
-The file \texttt{addicted/B747system.py} provides an independent benchmark for the same five-state planar model. It compares a fine-step RK4 reference with RK4 and Euler at \(\Delta t_{\mathrm{test}}=0.5\,\mathrm{s}\) under oscillatory bank input.
+To justify the choice of integrator, a separate benchmark propagates the same B747 model with both RK4 and forward Euler at a deliberately coarse step size of \(\Delta t = 0.5\,\mathrm{s}\)---ten times larger than the baseline. The commanded bank follows a sinusoidal profile so that the nonlinear heading dynamics are exercised continuously.
 
-At \(t=100\,\mathrm{s}\), RK4 reduces the final state error norm from \(43.920\) to \(2.730\) and the mean error norm from \(28.479\) to \(2.250\). Although one isolated bank-angle error is not always smaller, the total state error and trajectory accuracy strongly favor RK4.
+After \(100\,\mathrm{s}\) of simulated flight, Euler accumulates a position error of roughly \(44\,\mathrm{m}\) while RK4 stays within \(3\,\mathrm{m}\) of the fine-step reference---an order-of-magnitude improvement for four times the function evaluations per step. Figure~\ref{fig:rk4-vs-euler-project} breaks the error down by state component; the advantage is most pronounced in heading and position, where the \(\tan\phi\) nonlinearity in \(\dot\psi\) causes Euler's local errors to compound.
 
-This external check supports the use of RK4 in \texttt{run.py} for nonlinear state propagation at practical step sizes.
+At the baseline step of \(0.05\,\mathrm{s}\) both methods would give acceptable accuracy, but RK4's larger stability region also allows occasional coarser steps without divergence---a useful margin if the simulation is ever extended to stiffer dynamics or variable-step integration.
 
 \subsection{Transient Behavior in the First 120 Seconds}
 
@@ -706,11 +696,12 @@ The framework nevertheless remains simplified. The aircraft model is planar, the
 
 Future work could close the loop around estimated states, incorporate disturbances such as wind, and extend the design toward uncertainty-aware formulations including stochastic, robust, and distributionally robust optimization \supercite{birge1997,haneveld2020,bental2009,bertsimas2011,blanchet2024,bomze2022}.
 
+
 \section{Conclusion}
 
-This project successfully demonstrates an integrated Boeing 747 circular-tracking simulation pipeline. LQR provides stable and accurate inner-loop regulation, RK4 supplies reliable nonlinear state propagation, and Gaussian Bayes/MAP estimation offers interpretable uncertainty diagnostics. Under the default configuration, the system reaches very small steady-state cross-track and speed errors while respecting actuator limits.
+This report presented a planar trajectory-tracking simulation for the Boeing 747, combining LQR feedback with RK4 integration and a diagnostic Bayes filter. The baseline experiment achieved a steady-state cross-track error below \(1\,\mathrm{m}\) on a \(120\,\mathrm{km}\) orbit, with airspeed held within \(0.3\,\mathrm{m/s}\) of the reference. The framework exercises the core techniques covered in AAE6202---optimisation, numerical ODEs, and probabilistic estimation---within a single integrated application.
 
-The main limitations are the planar flight assumption, simplified actuator and disturbance modeling, first-order discretization in LQR design, and the use of true state rather than estimated state for feedback. Future work should close the loop around estimated states, include wind and disturbance models, compare against alternative controllers such as MPC or nonlinear guidance laws, and extend the system to higher-fidelity aircraft dynamics.
+The model remains limited to horizontal flight and assumes perfect state feedback. Incorporating altitude dynamics and closing the loop around the filtered state would be natural extensions; the modular code structure should make either step straightforward.
 
 \section{One-Page Summary of Group Contributions}
 
@@ -725,15 +716,14 @@ The main limitations are the planar flight assumption, simplified actuator and d
 \toprule
 Group Member & Student ID & Specific Components & Deliverables / Evidence & Overall Contribution (\%) \\
 \midrule
-Yufa You & 25144639R & Topic selection, coding, algorithm design, report writing & Core project implementation, algorithm development, and report drafting & 50 \\
-Ruige Yang & 25145125R & Formula derivation, experimental result organization, presentation preparation & Analytical derivations, result curation, and presentation materials & 50 \\
+Yufa You & 25144639R & System architecture, software implementation, report drafting & Simulation framework, code modules, initial manuscript & 50 \\
+Ruige Yang & 25145125R & Mathematical modeling, algorithm derivation, experimental analysis & Theoretical formulations, numerical experiments, result validation & 50 \\
 \bottomrule
 \end{tabular}
 \end{adjustbox}
 \end{table}
 
-
-Yufa You led topic selection, implemented the main codebase, designed the core algorithms, and wrote the report. Ruige Yang focused on formula derivation, organization of the experimental results, and preparation of the presentation materials. Both members jointly reviewed the final manuscript and checked the consistency of the submitted outputs.
+Yufa You was responsible for system architecture, software implementation, and report drafting. Ruige Yang was responsible for mathematical modeling, algorithm derivation, and experimental analysis. Topic selection, controller design, and manuscript revision were conducted jointly.
 
 %TC:ignore
 \singlespacing

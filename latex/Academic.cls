@@ -117,7 +117,7 @@
 
 \author{
 \vspace{-0.8em}%
-\textbf{\large \MyAuthor$^{1}$}\\[0.2em]
+\textbf{\large \MyAuthor}\\[0.2em]
 \small{$^{1}$\MyDepartment}
 %\small{$^{2}$Supervisor,}
 %\small{$^{3}$Co-Supervisor} Can add more names...
