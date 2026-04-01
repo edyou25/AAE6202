@@ -259,19 +259,19 @@ digraph module_dependency {
 digraph controller_logic {
   rankdir=TB;
   graph [pad="0.2", nodesep="0.35", ranksep="0.55"];
-  node [shape=box, style="rounded,filled", color="#8a4f1d", fillcolor="#fff1e6", fontname="Arial"];
-  edge [color="#a05a2c", arrowsize=0.8, penwidth=1.4, fontname="Arial"];
+  node [shape=box, style="rounded,filled", color="#8a4f1d", fillcolor="#fff1e6", fontname="DejaVu Sans"];
+  edge [color="#a05a2c", arrowsize=0.8, penwidth=1.4, fontname="DejaVu Sans"];
 
-  s0 [label="Current state\\n(x, y, psi, phi, v)"];
-  s1 [label="Geometry block\\nradius_now, tangent, e_ct"];
-  s2 [label="Heading correction\\natan(k_ct * -e_ct)\\n+ clip"];
-  s3 [label="Desired heading\\npsi_des"];
-  s4 [label="Feedforward bank\\nphi_ff = atan(v_ref^2 / gR)"];
-  s5 [label="Error states\\ne_psi, e_phi"];
-  s6 [label="Discrete LQR\\nDelta phi_cmd = -K[e_psi,e_phi]^T"];
-  s7 [label="Bank command saturation"];
-  s8 [label="Speed-hold thrust\\nD_guess + k_v(v_ref-v)"];
-  s9 [label="Control output\\n(phi_cmd, thrust)"];
+  s0 [label=<Current state<BR/>(x, y, ψ, φ, v)>];
+  s1 [label=<Geometry block<BR/>radius_now, tangent, e<SUB>ct</SUB>>];
+  s2 [label=<Heading correction<BR/>atan(k<SUB>ct</SUB>(-e<SUB>ct</SUB>))<BR/>+ clip>];
+  s3 [label=<Desired heading<BR/>ψ<SUB>des</SUB>>];
+  s4 [label=<Feedforward bank<BR/>φ<SUB>ff</SUB> = atan(v<SUB>ref</SUB><SUP>2</SUP> / gR)>];
+  s5 [label=<Error states<BR/>e<SUB>ψ</SUB>, e<SUB>φ</SUB>>];
+  s6 [label=<Discrete LQR<BR/>Δφ<SUB>cmd</SUB> = -K[e<SUB>ψ</SUB>, e<SUB>φ</SUB>]<SUP>T</SUP>>];
+  s7 [label=<Bank command saturation>];
+  s8 [label=<Speed-hold thrust<BR/>D<SUB>guess</SUB> + k<SUB>v</SUB>(v<SUB>ref</SUB>-v)>];
+  s9 [label=<Control output<BR/>(φ<SUB>cmd</SUB>, thrust)>];
 
   s0 -> s1 -> s2 -> s3 -> s5;
   s0 -> s4 -> s5;
@@ -577,7 +577,7 @@ def _generate_appendix_figures(base_results) -> dict[str, str]:
 
     axes[1].boxplot(
         [telemetry["solve_time_ms"], telemetry["est_update_ms"]],
-        tick_labels=["controller", "estimator"],
+        labels=["controller", "estimator"],
     )
     axes[1].set_title("Computation-time boxplots")
     axes[1].set_ylabel("ms")
